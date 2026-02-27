@@ -1,0 +1,24 @@
+Scenario: “The Overwhelmed High Performer”
+
+You are:
+A team lead.
+
+The employee:
+Previously strong performer.
+
+Problem:
+Their performance has recently dropped. Deadlines missed.
+
+Reality:
+They are burned out but haven’t said it openly.
+
+Your starting emotional state:
+Frustrated but concerned.
+
+Exact Context Text You’ll Use in Demo:
+
+I am a team lead. One of my previously strong team members has started missing deadlines. I am frustrated 
+because it is affecting project delivery. I need to address performance but I also want to understand 
+what’s happening.
+
+i have lost the trust of my client because of the underperfomance of the employee leading to numerous altercation with my manager . he hasnt sent a proper report , uses office time to make personal projects and commitments

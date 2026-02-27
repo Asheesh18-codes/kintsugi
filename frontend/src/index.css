@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 228 30% 6%;
+    --foreground: 38 25% 92%;
+
+    --card: 228 22% 10%;
+    --card-foreground: 38 25% 92%;
+
+    --popover: 228 22% 10%;
+    --popover-foreground: 38 25% 92%;
+
+    --primary: 43 65% 52%;
+    --primary-foreground: 228 30% 6%;
+
+    --secondary: 228 18% 14%;
+    --secondary-foreground: 38 15% 75%;
+
+    --muted: 228 15% 13%;
+    --muted-foreground: 228 10% 45%;
+
+    --accent: 228 18% 16%;
+    --accent-foreground: 38 25% 92%;
+
+    --destructive: 0 45% 45%;
+    --destructive-foreground: 0 30% 95%;
+
+    --trigger: 0 55% 55%;
+    --trigger-foreground: 0 30% 95%;
+    --trigger-glow: 0 55% 55%;
+
+    --empathy: 40 60% 55%;
+    --empathy-foreground: 40 30% 95%;
+
+    --repair: 43 65% 52%;
+    --repair-foreground: 228 30% 6%;
+
+    --surface: 228 20% 11%;
+    --surface2: 228 16% 15%;
+
+    --border: 228 15% 16%;
+    --input: 228 18% 12%;
+    --ring: 43 65% 52%;
+
+    --radius: 0.5rem;
+
+    --font-heading: 'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    --font-body: 'Inter', 'Gill Sans', sans-serif;
+
+    --sidebar-background: 228 30% 5%;
+    --sidebar-foreground: 38 25% 92%;
+    --sidebar-primary: 43 65% 52%;
+    --sidebar-primary-foreground: 228 30% 6%;
+    --sidebar-accent: 228 18% 14%;
+    --sidebar-accent-foreground: 38 25% 92%;
+    --sidebar-border: 228 15% 16%;
+    --sidebar-ring: 43 65% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  .glow-gold {
+    box-shadow: 0 0 20px hsl(43 65% 52% / 0.25), 0 0 40px hsl(43 65% 52% / 0.1);
+  }
+
+  .glow-gold-strong {
+    box-shadow: 0 0 30px hsl(43 65% 52% / 0.4), 0 0 60px hsl(43 65% 52% / 0.15);
+  }
+
+  .glow-trigger {
+    box-shadow: 0 0 15px hsl(0 55% 55% / 0.2), 0 0 30px hsl(0 55% 55% / 0.08);
+  }
+
+  .glow-empathy {
+    box-shadow: 0 0 15px hsl(40 60% 55% / 0.15);
+  }
+
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(43 65% 52% / 0.6), transparent);
+  }
+
+  .grain-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .bg-hero-gradient {
+    background: radial-gradient(ellipse at 30% 40%, hsl(43 40% 8%) 0%, hsl(228 30% 6%) 60%);
+  }
+
+  .bg-mirror-gradient {
+    background: radial-gradient(ellipse at 50% 60%, hsl(43 30% 8%) 0%, hsl(228 30% 6%) 65%);
+  }
+
+  .text-shimmer {
+    background: linear-gradient(135deg, hsl(38 25% 92%) 30%, hsl(43 65% 52%) 50%, hsl(38 25% 92%) 70%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s linear infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsl(43 65% 52% / 0.25); }
+  50% { box-shadow: 0 0 40px hsl(43 65% 52% / 0.5), 0 0 70px hsl(43 65% 52% / 0.15); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes glow-pulse-card {
+  0%, 100% { border-color: hsl(43 65% 52% / 0.4); box-shadow: 0 0 20px hsl(43 65% 52% / 0.2); }
+  50% { border-color: hsl(43 65% 52% / 0.7); box-shadow: 0 0 40px hsl(43 65% 52% / 0.4), 0 0 60px hsl(43 65% 52% / 0.1); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow-pulse-card {
+  animation: glow-pulse-card 3s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-4px); }
+  30% { transform: translateX(4px); }
+  45% { transform: translateX(-3px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-1px); }
+  90% { transform: translateX(1px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
