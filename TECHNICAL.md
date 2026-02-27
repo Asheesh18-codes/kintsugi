@@ -56,7 +56,7 @@ Three screen components receive state as props:
 | Component | Receives | Does |
 |-----------|----------|------|
 | `EntryScreen` | `onBegin` callback | Collects context, triggers screen transition |
-| `ConversationScreen` | `context`, `messages`, `setMessages`, `onRevealMirror` | Manages chat input, calls simulate API, enforces limits |
+| `ConversationScreen` | `context`, `messages`, `setMessages`, `onRevealMirror` | Manages chat input, calls simulate API, handles STT/TTS |
 | `RelationalMirrorScreen` | `context`, `messages`, `onTryAgain`, `onStartNew` | Calls mirror API on mount, displays reflection cards |
 
 ### Screen Transitions
@@ -86,9 +86,15 @@ This means `fetchSimulateResponse()` and `fetchMirrorAnalysis()` always resolve 
 | Empty input prevention | `ConversationScreen` | Blank sends trigger a horizontal shake animation; no API call is made |
 | Duplicate click prevention | `ConversationScreen` | `if (isLoading) return` at the top of `handleSend` |
 | Button disabling | `ConversationScreen` | Send, Mic, and Mirror buttons disabled during `isLoading` |
-| Conversation limit | `ConversationScreen` | After 3 user messages, input is replaced with a prompt to use the Mirror |
 | Mirror button guard | `ConversationScreen` | Mirror button disabled until user has sent at least 2 messages |
 | Mirror action guards | `RelationalMirrorScreen` | Rehearse Again and Begin New buttons disabled during loading |
+| STT session guard | `ConversationScreen` | Prevents multiple simultaneous recognition sessions via `useRef` |
+| STT stop on send | `ConversationScreen` | `stopListening()` called before every `handleSend()` |
+| STT stop on mirror | `ConversationScreen` | `stopListening()` called before transitioning to Mirror |
+| TTS cancel before STT | `ConversationScreen` | `speechSynthesis.cancel()` called before mic starts listening |
+| TTS cancel on mirror | `ConversationScreen` | `speechSynthesis.cancel()` called before transitioning to Mirror |
+| TTS toggle | `ConversationScreen` | Volume button toggles `voiceEnabled` state; cancels speech on toggle-off |
+| STT/TTS unsupported | `ConversationScreen` | Mic hidden if `SpeechRecognition` unavailable; volume hidden if `speechSynthesis` unavailable |
 
 ---
 
@@ -249,7 +255,7 @@ Layer 3: Frontend demo fallback catches backend 500s too
 | User sends blank message | Input shake animation | No API call made |
 | User clicks Send rapidly | `isLoading` guard | Second click ignored |
 | User clicks Mirror too early | Minimum 2-exchange gate | Button disabled with low opacity |
-| User exceeds conversation limit | 3-exchange maximum | Input replaced with Mirror prompt |
+
 | Loading state transition | Button disabling | Mirror actions disabled until data loads |
 
 ### Demo Fallback Data
@@ -294,9 +300,9 @@ The repair line is always written as a question or an invitation, never as a sta
 
 ### Be Effective
 
-The system constrains conversations to 3 exchanges maximum. This prevents users from spiraling into long debates with an AI. The constraint pushes users toward the Mirror — toward reflection — rather than letting them exhaust themselves in simulation.
+The system encourages focused practice through design — the Mirror button becomes available after 2 exchanges, gently nudging users toward reflection. There is no hard conversation limit; users can practice as long as they need.
 
-Short, focused practice with structured reflection is more effective than unlimited roleplay.
+The voice features (TTS for AI replies, STT for user input) make the experience feel more natural and embodied — closer to rehearsing a real conversation than typing into a chatbox.
 
 ### Why No Scoring
 
@@ -313,8 +319,8 @@ Clinical language ("low emotional awareness," "defensive communication pattern")
 ### Full Request Lifecycle: Simulate
 
 ```
-1. User types message → handleSend()
-2. Guard checks: isLoading? empty? limit reached?
+1. User types or speaks message → handleSend()
+2. Guard checks: isLoading? empty? STT stopped?
 3. User message added to local state immediately
 4. Loading indicator ("thinking...") appears
 5. fetchSimulateResponse(context, allMessages) called
@@ -333,18 +339,20 @@ Clinical language ("low emotional awareness," "defensive communication pattern")
    ├── Success → return reply string
    └── Any failure → return demo reply string
 6. AI message added to local state
-7. Loading indicator removed
-8. Chat auto-scrolls to bottom
+7. speak(reply) called → TTS plays if voiceEnabled
+8. Loading indicator removed
+9. Chat auto-scrolls to bottom
 ```
 
 ### Full Request Lifecycle: Mirror
 
 ```
 1. User clicks "Pause and Look Beneath the Surface"
-2. Screen transitions to Mirror
-3. RelationalMirrorScreen mounts → useEffect fires
-4. Loading skeleton appears with "reflection takes a moment" text
-5. fetchMirrorAnalysis(context, allMessages) called
+2. STT stopped + TTS cancelled
+3. Screen transitions to Mirror
+4. RelationalMirrorScreen mounts → useEffect fires
+5. Loading skeleton appears with "reflection takes a moment" text
+6. fetchMirrorAnalysis(context, allMessages) called
    ├── fetch() with 8s AbortController
    ├── POST /api/mirror via Vite proxy
    │   ├── Zod validates request body
@@ -356,8 +364,8 @@ Clinical language ("low emotional awareness," "defensive communication pattern")
    │   └── LLM failure → res.json(FALLBACK_REFLECTION)
    ├── Success → return MirrorData
    └── Any failure → return DEMO_MIRROR
-6. Mirror cards animate in (staggered 0.25s delays)
-7. Action buttons become enabled
+7. Mirror cards animate in (staggered 0.25s delays)
+8. Action buttons become enabled
 ```
 
 ---

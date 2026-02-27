@@ -43,6 +43,7 @@ It scaffolds human judgment. It does not replace it.
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion |
 | Backend | Express, TypeScript, Zod validation |
 | AI | OpenRouter API (Gemma, Llama, Mistral — free tier with model cascade) |
+| Voice | Browser Web Speech API — Text-to-Speech + Speech-to-Text |
 | Architecture | Roleplay Engine + Relational Mirror Engine |
 | Stability | 8s timeout, demo fallback, model cascade, JSON safe parsing |
 
@@ -162,7 +163,7 @@ kintsugi/
         │   └── Index.tsx          # Screen state management
         ├── components/
         │   ├── EntryScreen.tsx           # Context entry form
-        │   ├── ConversationScreen.tsx    # Practice conversation UI
+        │   ├── ConversationScreen.tsx    # Practice conversation UI + STT/TTS
         │   ├── RelationalMirrorScreen.tsx # Mirror reflection cards
         │   ├── GoldGlow.tsx              # Visual effect
         │   ├── GrainOverlay.tsx          # Texture overlay
@@ -224,22 +225,23 @@ Analyzes the full conversation and returns a structured reflection.
 
 2. **Enter context.** Describe the situation, the person you need to talk to, and how you're feeling. Click "Begin When You're Ready."
 
-3. **Practice the conversation.** Type what you would actually say to this person. The AI responds as a realistic employee — not hostile, not agreeable, but human. Slightly defensive. A little tired. Cautious.
+3. **Practice the conversation.** Type or speak what you would actually say to this person. Click the 🎤 mic button to use voice input — your speech is transcribed into the text field (you still press Send manually). The AI responds as a realistic employee — not hostile, not agreeable, but human. Slightly defensive. A little tired. Cautious.
 
-4. **After 2-3 exchanges**, click "Pause and Look Beneath the Surface."
+4. **Listen to the AI.** AI responses are spoken aloud via Text-to-Speech (on by default). Click the 🔊 volume icon to toggle voice on/off. Speech is cancelled automatically when you open the Mirror.
 
-5. **Read your reflection.** Three cards appear:
+5. **When ready**, click "Pause and Look Beneath the Surface." There is no conversation limit — practice as long as you need.
+
+6. **Read your reflection.** Three cards appear:
    - A moment where your language may have carried more weight than you intended.
    - How it might have felt from the other side.
    - One opening line you could try instead.
 
-6. **Rehearse again** with this new awareness, or **start fresh** with a new conversation.
+7. **Rehearse again** with this new awareness, or **start fresh** with a new conversation.
 
 ---
 
 ## Future Roadmap
 
-- Voice interaction with speech-to-text input
 - Emotional prosody detection (tone analysis beyond words)
 - Slack and Teams integration for in-context practice
 - Team-level analytics (aggregated, anonymized — never individual scoring)
@@ -256,7 +258,7 @@ Analyzes the full conversation and returns a structured reflection.
 - **Rate limiting** on OpenRouter's free tier can cause delays. The model cascade and demo fallback mitigate this but don't eliminate it.
 - **Single scenario type.** Currently designed for manager-employee conversations. Other relationship types (peer, client, report) are not yet supported.
 - **No conversation persistence.** Conversations are not saved between sessions.
-- **No voice input.** The microphone button is a placeholder for future implementation.
+- **Voice browser compatibility.** Speech-to-Text requires a Chromium-based browser (Chrome, Edge). Text-to-Speech works in all modern browsers. Both features gracefully hide when unsupported.
 - **English only.** No multi-language support yet.
 
 ---
