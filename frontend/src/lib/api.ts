@@ -16,6 +16,11 @@ export interface MirrorData {
   repair: string;
 }
 
+export interface ApiResult<T> {
+  data: T;
+  isFallback: boolean;
+}
+
 // ─── Timeout ─────────────────────────────────────────────────────────────────
 const API_TIMEOUT_MS = 12_000;
 const MIRROR_TIMEOUT_MS = 20_000;
@@ -59,7 +64,7 @@ async function fetchWithTimeout(
 export async function fetchSimulateResponse(
   context: Context,
   messages: Message[]
-): Promise<string> {
+): Promise<ApiResult<string>> {
   try {
     const res = await fetchWithTimeout("/api/simulate", {
       method: "POST",
@@ -73,10 +78,12 @@ export async function fetchSimulateResponse(
 
     const data = await res.json();
     if (!data.reply) throw new Error("Empty reply");
-    return data.reply;
+    return { data: data.reply, isFallback: data.isFallback === true };
   } catch (err) {
-    console.error("Simulate API failed:", err);
-    throw err;
+    console.warn("Simulate API failed, using fallback:", err);
+    const reply = DEMO_REPLIES[demoReplyIndex % DEMO_REPLIES.length];
+    demoReplyIndex++;
+    return { data: reply, isFallback: true };
   }
 }
 
@@ -84,7 +91,7 @@ export async function fetchSimulateResponse(
 export async function fetchMirrorAnalysis(
   context: Context,
   messages: Message[]
-): Promise<MirrorData> {
+): Promise<ApiResult<MirrorData>> {
   try {
     const res = await fetchWithTimeout("/api/mirror", {
       method: "POST",
@@ -103,9 +110,9 @@ export async function fetchMirrorAnalysis(
       throw new Error("Incomplete mirror data");
     }
 
-    return data as MirrorData;
+    return { data: data as MirrorData, isFallback: data.isFallback === true };
   } catch (err) {
-    console.error("Mirror API failed:", err);
-    throw err;
+    console.warn("Mirror API failed, using fallback:", err);
+    return { data: DEMO_MIRROR, isFallback: true };
   }
 }

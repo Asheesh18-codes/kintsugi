@@ -29,16 +29,20 @@ const RelationalMirrorScreen = ({
 }: RelationalMirrorScreenProps) => {
   const [mirrorData, setMirrorData] = useState<MirrorData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadMirror = async () => {
       setIsLoading(true);
-      // fetchMirrorAnalysis always resolves — falls back to demo data on failure
-      const data = await fetchMirrorAnalysis(context, messages);
+      setIsFallback(false);
+
+      const result = await fetchMirrorAnalysis(context, messages);
+
       if (!cancelled) {
-        setMirrorData(data);
+        setMirrorData(result.data);
+        setIsFallback(result.isFallback);
         setIsLoading(false);
       }
     };
@@ -76,6 +80,19 @@ const RelationalMirrorScreen = ({
           </h1>
           <div className="gold-divider mx-auto mt-5 w-16" />
         </motion.div>
+
+        {/* Fallback indicator */}
+        {isFallback && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-sm bg-primary/10 border border-primary/20 px-4 py-2.5"
+          >
+            <p className="text-[11px] font-mono tracking-wider text-primary/80">
+              ⚡ Practice mode — showing a guided reflection while AI is unavailable
+            </p>
+          </motion.div>
+        )}
 
         {isLoading ? (
           <motion.div

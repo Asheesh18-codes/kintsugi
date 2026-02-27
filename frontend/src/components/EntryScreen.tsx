@@ -17,7 +17,11 @@ interface EntryScreenProps {
   onBegin: (data: { situation: string; person: string; emotion: string }) => void;
 }
 
-const emotionalStates = ["Calm", "Frustrated", "Concerned", "Anxious", "Uncertain"];
+const emotionalStates = [
+  "Calm", "Frustrated", "Concerned", "Anxious", "Uncertain",
+  "Angry", "Guilty", "Disappointed", "Scared", "Sad",
+  "Overwhelmed", "Hopeful",
+];
 
 const EntryScreen = ({ onBegin }: EntryScreenProps) => {
   const [situation, setSituation] = useState("");

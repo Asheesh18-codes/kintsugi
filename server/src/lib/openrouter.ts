@@ -6,8 +6,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 if (!process.env.OPENROUTER_API_KEY) {
-  console.error("OPENROUTER_API_KEY is not set. Create a .env file in the project root.");
-  process.exit(1);
+  console.warn(
+    "⚠️  OPENROUTER_API_KEY is not set. The server will start but AI responses will use fallback mode.\n" +
+    "   Create a .env file in the project root with: OPENROUTER_API_KEY=your-key-here"
+  );
 }
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";

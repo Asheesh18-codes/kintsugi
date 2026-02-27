@@ -11,8 +11,6 @@ type SpeechRecognitionInstance = InstanceType<
   typeof globalThis.SpeechRecognition
 >;
 
-
-
 interface ConversationScreenProps {
   context: Context;
   messages: Message[];
@@ -32,6 +30,7 @@ const ConversationScreen = ({
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [sttSupported, setSttSupported] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
@@ -86,7 +85,6 @@ const ConversationScreen = ({
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListening || isLoading) return;
-    // Cancel any ongoing TTS to avoid audio overlap
     globalThis.speechSynthesis?.cancel();
     try { recognitionRef.current.start(); } catch { /* already started */ }
   }, [isListening, isLoading]);
@@ -114,7 +112,6 @@ const ConversationScreen = ({
     [voiceEnabled]
   );
 
-
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
@@ -123,19 +120,15 @@ const ConversationScreen = ({
   }, [messages, isLoading]);
 
   const handleSend = async () => {
-    // Stop STT before sending
     stopListening();
 
-    // Prevent duplicate calls while loading
     if (isLoading) return;
 
-    // Empty input protection with shake
     if (!input.trim()) {
       setShakeInput(true);
       setTimeout(() => setShakeInput(false), 500);
       return;
     }
-
 
     const userMsg: Message = { role: "user", text: input.trim() };
     const updatedMessages = [...messages, userMsg];
@@ -144,9 +137,12 @@ const ConversationScreen = ({
     setIsLoading(true);
 
     try {
-      const reply = await fetchSimulateResponse(context, updatedMessages);
-      setMessages((prev) => [...prev, { role: "ai", text: reply }]);
-      speak(reply);
+      const result = await fetchSimulateResponse(context, updatedMessages);
+      setMessages((prev) => [...prev, { role: "ai", text: result.data }]);
+      if (result.isFallback) {
+        setUsingFallback(true);
+      }
+      speak(result.data);
     } finally {
       setIsLoading(false);
     }
@@ -172,6 +168,19 @@ const ConversationScreen = ({
         </h2>
         <div className="w-7" />
       </div>
+
+      {/* Fallback indicator */}
+      {usingFallback && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-primary/10 border-b border-primary/20 px-4 py-2 text-center"
+        >
+          <p className="text-[11px] font-mono tracking-wider text-primary/80">
+            ⚡ Practice mode — AI is currently unavailable, using guided responses
+          </p>
+        </motion.div>
+      )}
 
       {/* Chat area */}
       <div

@@ -41,13 +41,17 @@ router.post("/", async (req: Request, res: Response) => {
     const body = MirrorBodySchema.parse(req.body);
     const { context, messages } = body;
 
+    // Use dynamic labels based on context instead of hardcoded Manager/Employee
+    const userLabel = "You";
+    const otherLabel = context.person || "Them";
+
     const transcript = messages
-      .map((m) => `${m.role === "user" ? "Manager" : "Employee"}: ${m.text}`)
+      .map((m) => `${m.role === "user" ? userLabel : otherLabel}: ${m.text}`)
       .join("\n\n");
 
     const userContent =
       `CONTEXT:\n` +
-      `The manager described their situation as: "${context.situation}". ` +
+      `The user described their situation as: "${context.situation}". ` +
       `They are speaking with ${context.person}. ` +
       `They said they feel ${context.emotion}.\n\n` +
       `CONVERSATION TRANSCRIPT:\n\n${transcript}\n\n` +
@@ -64,8 +68,10 @@ router.post("/", async (req: Request, res: Response) => {
         max_tokens: 500,
       });
     } catch (llmErr) {
-      console.error("Mirror LLM failed:", llmErr);
-      throw llmErr;
+      // All models failed — return safe fallback so the user always sees something
+      console.warn("Mirror LLM failed, using fallback reflection:", llmErr);
+      res.json({ ...FALLBACK_REFLECTION, isFallback: true });
+      return;
     }
 
     // Strip markdown code fences if present
@@ -81,8 +87,9 @@ router.post("/", async (req: Request, res: Response) => {
       const parsed = JSON.parse(jsonStr);
       mirrorData = MirrorResponseSchema.parse(parsed);
     } catch (parseErr) {
-      console.error("Mirror JSON parse failed:", parseErr);
-      throw parseErr;
+      console.warn("Mirror JSON parse failed, using fallback reflection:", parseErr);
+      res.json({ ...FALLBACK_REFLECTION, isFallback: true });
+      return;
     }
 
     // Map to frontend's expected keys
@@ -90,6 +97,7 @@ router.post("/", async (req: Request, res: Response) => {
       trigger: mirrorData.moment_to_notice,
       empathyGap: mirrorData.the_other_side,
       repair: mirrorData.a_way_to_begin,
+      isFallback: false,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

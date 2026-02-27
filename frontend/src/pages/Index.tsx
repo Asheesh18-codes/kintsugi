@@ -49,7 +49,13 @@ const Index = () => {
             key="mirror"
             context={context}
             messages={messages}
-            onTryAgain={() => setScreen("conversation")}
+            onTryAgain={() => {
+              setMessages([{
+                role: "ai",
+                text: `Welcome back. Let's try this conversation with ${context.person} again. Take a breath, and say what you'd like to say differently this time.`,
+              }]);
+              setScreen("conversation");
+            }}
             onStartNew={() => {
               setContext({ situation: "", person: "", emotion: "" });
               setMessages([]);
