@@ -21,18 +21,6 @@ const SimulateBodySchema = z.object({
   messages: z.array(MessageSchema),
 });
 
-// In-character fallbacks when the AI provider is unavailable
-const FALLBACK_REPLIES = [
-  "I... sorry, I zoned out for a second. Can you say that again?",
-  "Look, I hear you, I just need a moment to think about what you said.",
-  "Yeah... I'm not sure how to respond to that right now. Give me a second.",
-  "I don't really know what to say to that. It's a lot.",
-  "Sorry, I'm just... processing. This conversation is a lot right now.",
-];
-
-function getRandomFallback(): string {
-  return FALLBACK_REPLIES[Math.floor(Math.random() * FALLBACK_REPLIES.length)];
-}
 
 router.post("/", async (req: Request, res: Response) => {
   try {
@@ -72,9 +60,8 @@ router.post("/", async (req: Request, res: Response) => {
         max_tokens: 200,
       });
     } catch (llmErr) {
-      // AI provider failed — use an in-character fallback so the conversation doesn't break
-      console.warn("Simulate LLM failed, using in-character fallback:", llmErr);
-      reply = getRandomFallback();
+      console.error("Simulate LLM failed:", llmErr);
+      throw llmErr;
     }
 
     res.json({ reply });

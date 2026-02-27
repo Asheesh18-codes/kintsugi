@@ -64,10 +64,8 @@ router.post("/", async (req: Request, res: Response) => {
         max_tokens: 500,
       });
     } catch (llmErr) {
-      // All models failed — return safe fallback so the user always sees something
-      console.warn("Mirror LLM failed, using fallback reflection:", llmErr);
-      res.json(FALLBACK_REFLECTION);
-      return;
+      console.error("Mirror LLM failed:", llmErr);
+      throw llmErr;
     }
 
     // Strip markdown code fences if present
@@ -83,9 +81,8 @@ router.post("/", async (req: Request, res: Response) => {
       const parsed = JSON.parse(jsonStr);
       mirrorData = MirrorResponseSchema.parse(parsed);
     } catch (parseErr) {
-      console.warn("Mirror JSON parse failed, using fallback reflection:", parseErr);
-      res.json(FALLBACK_REFLECTION);
-      return;
+      console.error("Mirror JSON parse failed:", parseErr);
+      throw parseErr;
     }
 
     // Map to frontend's expected keys

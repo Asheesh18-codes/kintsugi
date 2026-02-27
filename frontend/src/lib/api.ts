@@ -17,7 +17,8 @@ export interface MirrorData {
 }
 
 // ─── Timeout ─────────────────────────────────────────────────────────────────
-const API_TIMEOUT_MS = 8000;
+const API_TIMEOUT_MS = 12_000;
+const MIRROR_TIMEOUT_MS = 20_000;
 
 // ─── Demo Fallback Data ──────────────────────────────────────────────────────
 const DEMO_REPLIES = [
@@ -74,11 +75,8 @@ export async function fetchSimulateResponse(
     if (!data.reply) throw new Error("Empty reply");
     return data.reply;
   } catch (err) {
-    // Demo mode: return prewritten reply so conversation never breaks
-    console.warn("Simulate API failed, using demo reply:", err);
-    const reply = DEMO_REPLIES[demoReplyIndex % DEMO_REPLIES.length];
-    demoReplyIndex++;
-    return reply;
+    console.error("Simulate API failed:", err);
+    throw err;
   }
 }
 
@@ -92,7 +90,7 @@ export async function fetchMirrorAnalysis(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ context, messages }),
-    });
+    }, MIRROR_TIMEOUT_MS);
 
     if (!res.ok) {
       throw new Error(`Server error: ${res.status}`);
@@ -107,8 +105,7 @@ export async function fetchMirrorAnalysis(
 
     return data as MirrorData;
   } catch (err) {
-    // Demo mode: return prewritten reflection so mirror never breaks
-    console.warn("Mirror API failed, using demo reflection:", err);
-    return DEMO_MIRROR;
+    console.error("Mirror API failed:", err);
+    throw err;
   }
 }
