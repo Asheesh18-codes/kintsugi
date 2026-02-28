@@ -1,163 +1,126 @@
 # Kintsugi AI — Technical Presentation Script
 
-> **Purpose:** Use this script when explaining the technical architecture, design decisions, and engineering behind Kintsugi. This is NOT a demo script — it's for answering "How did you build this?" and "Why these choices?"
+> **How to use:** Open `technical-diagrams.html` in your browser alongside this script. Each section below maps to a specific diagram. Scroll to the matching diagram as you speak.
 
 ---
 
-## 1. Opening — The Engineering Challenge (30 seconds)
+## 📊 Diagram 01 — User Flow
 
-> "The core technical challenge was: how do you make an AI that creates *realistic emotional friction* — not a chatbot that agrees with you, not a hostile adversary, but something that feels like talking to *a real person having a bad day*. And how do you make it reliable enough to work live — even when AI APIs fail."
+> "Let me walk you through how a user experiences Kintsugi."
 
----
+> "It starts at the **Entry Screen** — three simple inputs: what's the situation, who's the person, and how are you feeling. We give them **12 emotional states** to choose from — not just 'good' or 'bad,' but specific ones like Guilty, Overwhelmed, Scared, Hopeful."
 
-## 2. Architecture Overview (2 minutes)
+> "When they click 'Begin,' they enter the **Conversation Screen**. This is the core — a live roleplay where the AI dynamically plays the other person. Users can type or **speak using the mic button** — STT via Web Speech API. The AI responds in text and **reads it aloud** via TTS."
 
-> "Let me walk you through the architecture."
+> "Each message hits `POST /api/simulate` — context + full message history goes to our backend, the AI generates a response, and it comes back."
 
-### Frontend
-> "The frontend is **React 18 with TypeScript**, built on **Vite** for fast HMR during development. We use **Framer Motion** for screen transitions — the entry screen fades into the conversation screen, which slides into the mirror. It's not just cosmetic — the transitions give users a moment to shift their mental state between phases."
+> "When they're ready, they click 'Pause and Look Beneath the Surface' — that transitions to the **Mirror Screen**. Three reflection cards appear analyzing their actual conversation."
 
-> "For styling, it's **Tailwind CSS** with **shadcn/ui** components. The design is intentionally dark and quiet — this is a reflective space, not a productivity dashboard."
+> "From there, two choices: **Rehearse Again** — which resets the conversation with a fresh AI greeting but keeps the same context — or **Start New** — back to the entry screen for a completely different scenario."
 
-### Backend
-> "The backend is **Express with TypeScript**. Every request goes through **Zod schema validation** — we validate the full shape of context objects, message arrays, and emotion enums before anything hits the AI. If the body is malformed, we return a 400 with specific error details."
-
-### AI Layer
-> "We use **OpenRouter** as our AI gateway. The key engineering decision here is the **5-model cascade with retry logic**."
+> "The whole thing is a single-page React app. **Framer Motion** handles all screen transitions — no page reloads, no routing."
 
 ---
 
-## 3. The Model Cascade — Deep Dive (2 minutes)
+## 📊 Diagram 02 — System Architecture
+
+> "Now let's look at how this is built."
+
+> "**Frontend** is React 18, TypeScript, Vite. Three main components: EntryScreen, ConversationScreen, RelationalMirrorScreen. Everything flows through `api.ts` — our API client that handles timeouts, fallbacks, and a custom type called `ApiResult<T>` which wraps every response with an `isFallback` boolean."
+
+> "**Backend** is Express with TypeScript. Two routes: `/api/simulate` for the roleplay and `/api/mirror` for the analysis. Every request goes through **Zod schema validation** — we validate the full shape of context objects, message arrays, and emotion values before anything touches the AI."
+
+> "The key piece is the **Dynamic Prompt Builder** — `simulateSystem.ts`. It takes the user's context and constructs a system prompt at runtime. So the AI becomes whoever the user described — a client, a manager, a teammate — without any code changes."
+
+> "At the bottom is **OpenRouter** — our AI gateway. We use a **5-model cascade**: Gemma 3, Gemma 3n, Arcee Trinity, Llama 4, DeepSeek V3. All free tier. Let me show you how that works..."
+
+---
+
+## 📊 Diagram 03 — Model Cascade
 
 > "This is probably the most important engineering decision in the project."
 
-> "We don't rely on a single AI model. We have a **cascade of 5 models**, all on free tier:
-> 1. Google Gemma 3 12B
-> 2. Google Gemma 3n E4B  
-> 3. Arcee Trinity Large
-> 4. Meta Llama 4 Scout
-> 5. DeepSeek V3 Free
->
-> Each model gets **2 retry attempts** with exponential backoff (2 seconds, then 4 seconds). If a model returns a 429 (rate limit) or 5xx (server error), we log it and move to the next model. If ALL models and ALL retries fail, the server returns an **in-character fallback response** — not an error."
+> "We don't rely on a single AI model. Free-tier models have unpredictable rate limits — a model that worked 5 minutes ago might return a 429 right now."
 
-> "Why in-character? Because if the AI says 'I... sorry, I zoned out for a second. Can you say that again?' — that *sounds like the character*. The user's immersion isn't broken. They can continue the conversation naturally."
+> "So we built a **cascade**. When `chatCompletion()` is called, it tries Gemma 3 first. If that fails — 429, 5xx, timeout — it retries once with a **2-second backoff**. If the retry fails, it moves to Gemma 3n. Same pattern — try, retry, next."
 
-> "The total worst-case latency is about 30 seconds if every model fails before hitting fallback. In practice, at least one model responds within 2-5 seconds."
+> "Each model gets **2 attempts** with exponential backoff. That's 5 models × 2 attempts = **10 total chances** for a successful response."
+
+> "If ALL 10 attempts fail — which is rare — the server returns an **in-character fallback**. Not an error message. Something like: 'I... sorry, I zoned out for a second. Can you say that again?' — it *sounds like the character*. The conversation isn't broken."
+
+> "Worst-case latency is about 30 seconds if everything fails. In practice, one model responds within 2-5 seconds."
 
 ---
 
-## 4. The Dynamic Prompt System (2 minutes)
+## 📊 Diagram 04 — 3-Tier Fallback System
 
-> "Early in development, the roleplay prompt was hardcoded — the AI always played an 'overwhelmed employee.' That's a problem because users can describe *any* scenario — a client, a spouse, a manager, a teammate."
+> "Reliability was a first-class concern. We have three layers of protection."
 
-> "We solved this with a **dynamic prompt builder**. The function `buildSimulateSystemPrompt(context)` takes the user's situation, person, and emotion, and constructs a complete system prompt on the fly."
+> "**Tier 1 — Server fallback.** If all AI models fail, the backend returns an in-character response with `isFallback: true` in the JSON. The simulate route returns natural-sounding lines. The mirror route returns generic but meaningful reflections."
 
-> "Here's what the prompt does:
-> - Sets the AI's **identity** to the person the user named
-> - Describes the **situation** from that person's perspective  
-> - Calibrates **emotional tone** based on the user's stated emotion — if the user says 'frustrated,' the AI becomes slightly defensive; if 'anxious,' the AI becomes cautious
-> - Enforces **hard rules**: stay in character, never break the fourth wall, never give advice, never agree too easily, never escalate to hostility
-> - Limits response length to **1-3 sentences** — real people don't monologue"
+> "**Tier 2 — Client fallback.** If the server itself is unreachable — crashed, network failure, CORS issue — the frontend catches the error in `api.ts` and returns prewritten demo data, also with `isFallback: true`."
 
-> "This means Kintsugi works for ANY relationship scenario without any code changes — you just type a different context."
+> "**Tier 3 — Visible indicator.** When `isFallback` is true, a gold banner appears: 'Practice mode — AI is currently unavailable, using guided responses.' The user knows, but the experience continues."
 
----
+> "The key design decision: we use a **single boolean flag** — `isFallback` — that flows from server response through `api.ts` into the UI components. It's checked using a generic `ApiResult<T>` type, so every component knows at the type level whether the data is real."
 
-## 5. The Relational Mirror Engine (2 minutes)
-
-> "After the conversation, the Mirror analyzes the full transcript."
-
-> "We send the entire message history — with **dynamic labels** based on context (not hardcoded 'Manager/Employee') — plus the original situation and emotion context to the AI."
-
-> "The system prompt asks for a JSON response with three fields:
-> - `moment_to_notice` — the exact phrase from the transcript that carried tension
-> - `the_other_side` — how that phrase was likely experienced by the other person
-> - `a_way_to_begin` — a vulnerability-based repair statement"
-
-> "On the backend, we do **safe JSON parsing** — we strip markdown code fences if the AI wraps the JSON in backticks (which happens often), then parse and validate against a **Zod schema**. If parsing fails, we return a meaningful fallback reflection instead of crashing."
-
-> "The mirror output is mapped to frontend-friendly keys: `trigger`, `empathyGap`, `repair`. The frontend renders these as three distinct cards with color-coded left borders — red for trigger, yellow for empathy, gold for repair."
+> "The server also **starts without an API key** — it logs a warning and runs in full fallback mode. So you can demo the entire app with zero configuration."
 
 ---
 
-## 6. The 3-Tier Fallback System (1.5 minutes)
+## 📊 Diagram 05 — Dynamic Prompt Generation
 
-> "Reliability was a first-class concern. We built a **3-tier fallback system**:"
+> "Early in development, the AI always played the same character — an 'overwhelmed employee.' That broke when users described a client scenario or a manager scenario."
 
-> "**Tier 1 — Server-side fallback.** If the AI API fails, the backend routes return hardcoded but in-character responses with `isFallback: true` in the JSON. The simulate route returns natural-sounding lines like 'I hear you, I just need a moment.' The mirror route returns generic but meaningful reflections."
+> "We solved this with `buildSimulateSystemPrompt()`. It takes three inputs from the user's context: situation, person, and emotion."
 
-> "**Tier 2 — Client-side fallback.** If the server itself is unreachable — network failure, CORS issue, server crash — the frontend `api.ts` catches the error and returns prewritten demo responses, also with `isFallback: true`."
+> "It generates four things in the system prompt:
+> - **Identity** — 'You are {person}' — the AI becomes whoever the user named
+> - **Situation** — described from the other person's point of view
+> - **Emotional Tone** — calibrated to the user's stated emotion. If they said 'frustrated,' the AI becomes slightly defensive. If 'anxious,' it becomes cautious.
+> - **Hard Rules** — stay in character, respond in 1-3 sentences, never give advice, never escalate to hostility, never break the fourth wall"
 
-> "**Tier 3 — Visible indicator.** The frontend checks the `isFallback` flag using a custom `ApiResult<T>` type. When `isFallback` is true, a gold banner appears: 'Practice mode — AI is currently unavailable, using guided responses.' This is transparency, not failure."
-
-> "The server also **starts without an API key** — it logs a warning and every AI call immediately throws, which triggers the Tier 1 fallback. So you can demo the entire app without any configuration."
-
----
-
-## 7. Voice I/O — STT & TTS (1 minute)
-
-> "We integrated **Speech-to-Text** and **Text-to-Speech** using the browser's **native Web Speech API** — no external services, no API costs, no latency."
-
-> "**STT** uses `SpeechRecognition` (Chromium only). Click the mic icon, speak, and your words appear in the input field. You still press Send manually — this is intentional. Practicing saying difficult words out loud is part of the therapeutic value."
-
-> "**TTS** uses `SpeechSynthesisUtterance`. AI responses are read aloud automatically — you can toggle it with the speaker icon. Speech is cancelled when you navigate to the Mirror, so the reflection moment stays quiet."
-
-> "Both features gracefully hide on unsupported browsers — no errors, no broken UI."
+> "This means Kintsugi handles ANY relationship scenario — client anger, peer conflict, performance review, personal boundary — with the exact same code. No templates, no scenario configs. Just a prompt builder."
 
 ---
 
-## 8. Type Safety & Validation (1 minute)
+## 📊 Diagram 06 — Mirror Analysis Pipeline
 
-> "The entire stack is **TypeScript end-to-end**. On the backend, every route uses **Zod schemas** — not just for validation, but for type inference. The `SimulateBodySchema` validates context shape, message roles, and text fields. The `MirrorResponseSchema` validates the AI's JSON output."
+> "After the conversation, the Relational Mirror analyzes the full transcript."
 
-> "On the frontend, we introduced a custom generic type called `ApiResult<T>` — it wraps every API response with a `data: T` and `isFallback: boolean`. This means every component that calls the API knows *at the type level* whether the response is real or fallback."
+> "The pipeline starts by formatting all messages with **dynamic labels** — 'You' for the user and the actual person's name from context. Not hardcoded 'Manager/Employee.'"
 
-> "TypeScript compiles with **zero errors** on both server and frontend — verified with `tsc --noEmit`."
+> "That transcript, plus the original situation and emotion, gets sent to the AI with a specialized mirror system prompt."
 
----
+> "The AI returns raw text. We first **strip markdown code fences** — models often wrap JSON in triple backticks. Then we **parse** the JSON and **validate** it against a Zod schema. The schema expects three fields: `moment_to_notice`, `the_other_side`, `a_way_to_begin`."
 
-## 9. Safety Guardrails (30 seconds)
+> "If parsing succeeds, we **map the keys** to frontend-friendly names: `trigger`, `empathyGap`, `repair` — and return with `isFallback: false`."
 
-> "We have a **safety guardrail** in `safety.ts`. If a user sends a very short message — like 'ok' or 'hi' — the guardrail wraps it with context so the AI still gives a meaningful response instead of a confused one-liner."
+> "If parsing fails — malformed JSON, missing fields, extra text — we return a **fallback reflection** with `isFallback: true`. The user still sees meaningful content, never a crash."
 
-> "The AI prompt also has **hard constraints**: never break character, never give therapy advice, never diagnose, never use clinical language. The system says 'There may have been a moment where...' — never 'You were wrong.'"
-
----
-
-## 10. Design Decisions Summary (1 minute)
-
-| Decision | Why |
-|----------|-----|
-| **5-model cascade** | Free tier rate limits are unpredictable — cascading ensures at least one model responds |
-| **`isFallback` flag** | Transparency over silent failure — users know when they're seeing demo data |
-| **Dynamic prompts** | One codebase supports unlimited scenarios without code changes |
-| **In-character fallbacks** | Immersion isn't broken even when AI fails |
-| **No conversation storage** | Privacy-first — nothing is logged, stored, or transmitted |
-| **Native Web Speech API** | Zero-cost voice I/O with no external dependencies |
-| **Zod + TypeScript** | End-to-end type safety eliminates runtime shape mismatches |
-| **Server starts without key** | Demo-ready out of the box — zero configuration needed |
+> "The three cards are rendered with color-coded borders: red for trigger, yellow for empathy gap, gold for repair."
 
 ---
 
-## 11. Closing Line
+## Closing Summary
 
-> "Kintsugi isn't a chatbot. It's a **relational rehearsal engine** — and the engineering is designed around one idea: the technology should be invisible. The user should feel like they're talking to a real person, not using a product. Everything we built — the cascade, the dynamic prompts, the voice, the fallbacks — serves that single goal."
+> "To summarize the tech: TypeScript end-to-end, 5-model AI cascade with 10 retry attempts, 3-tier fallback with transparent practice mode, dynamic prompt generation for unlimited scenarios, native browser voice I/O, and Zod validation at every boundary. Zero errors in TypeScript, zero crashes in production, zero configuration needed for demo."
 
 ---
 
 ## Quick Q&A Prep
 
-**Q: Why OpenRouter instead of OpenAI directly?**
-> "OpenRouter gives us access to multiple model providers through a single API. The free tier lets us use 5 different models. If we were locked to OpenAI, a single rate limit would break everything."
+**Q: Why OpenRouter instead of OpenAI?**
+> "Single API, multiple model providers. Free tier gives us 5 models. If one is rate-limited, we cascade to the next. With OpenAI, one rate limit breaks everything."
 
-**Q: How do you handle prompt injection?**
-> "The system prompt has hard rules — 'never break character, never reveal you are AI.' Zod validates all user input before it reaches the prompt. The safety guardrail processes short inputs. We don't expose any system prompt to the user."
+**Q: Why not LangChain?**
+> "Our AI layer is ~120 lines. Model cascade, retry, fetch. No framework overhead, no abstraction over simple HTTP calls. Easier to debug."
 
-**Q: What happens at scale?**
-> "For production, we'd move to paid tier models (better quality, higher limits), add Redis for rate limiting, and implement SSO for enterprise. The architecture already supports it — just swap the model list and add a database."
+**Q: How is this different from ChatGPT?**
+> "ChatGPT gives advice. Kintsugi gives practice. The AI stays in character, creates friction, and then the Mirror reflects your own patterns back — not answers."
 
-**Q: Why not use LangChain or a framework?**
-> "We intentionally kept the stack minimal. Our AI layer is ~120 lines of TypeScript — model cascade, retry, fetch. No framework overhead, no abstraction layers over simple HTTP calls. Easier to debug, easier to maintain."
+**Q: What about prompt injection?**
+> "System prompt has hard rules. Zod validates all input shapes. Safety guardrail handles edge-case short messages. No system prompt is exposed to the user."
 
-**Q: How is this different from just talking to ChatGPT?**
-> "ChatGPT gives you advice. Kintsugi gives you *practice*. The AI stays in character, creates realistic friction, and then the Mirror shows you your own patterns — not answers. No AI tool does this today."
+**Q: What would you change for production?**
+> "Paid-tier models for quality, Redis for rate limiting, SSO for enterprise, conversation persistence with opt-in encryption. Architecture already supports all of it."
