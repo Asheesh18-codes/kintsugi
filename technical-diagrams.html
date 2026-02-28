@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kintsugi AI — Technical Flow Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap');
+  :root { --gold: #D4AF37; --bg: #0A0B0E; --surface: #161820; --text: #F0EDE8; --muted: #8A8890; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 32px; }
+  h1 { font-size: 40px; font-weight: 300; text-align: center; margin-bottom: 8px; }
+  h1 span { color: var(--gold); }
+  .subtitle { text-align: center; color: var(--muted); font-size: 14px; letter-spacing: 0.1em; margin-bottom: 60px; }
+  .section { margin-bottom: 64px; }
+  .section-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+  .section-title { font-size: 28px; font-weight: 300; margin-bottom: 24px; }
+  .diagram-box { background: var(--surface); border: 1px solid #1E2030; border-radius: 8px; padding: 32px; overflow-x: auto; }
+  .mermaid { display: flex; justify-content: center; }
+  .note { font-size: 13px; color: var(--muted); line-height: 1.7; margin-top: 16px; padding-left: 16px; border-left: 2px solid var(--gold); }
+  .divider { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 48px auto; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Kintsugi <span>AI</span></h1>
+  <div class="subtitle">TECHNICAL FLOW DIAGRAMS</div>
+
+  <!-- 1. USER FLOW -->
+  <div class="section">
+    <div class="section-label">Diagram 01</div>
+    <div class="section-title">User Flow — End to End</div>
+    <div class="diagram-box">
+      <pre class="mermaid">
+flowchart LR
+  A["🏠 Entry Screen\n Situation + Person + Emotion"] -->|Begin| B["💬 Conversation Screen\n AI Roleplay + STT + TTS"]
+  B -->|Send Message| C{"POST /api/simulate"}
+  C -->|AI Reply| B
+  B -->|"Pause & Look Beneath"| D["🪞 Mirror Screen\n 3 Reflection Cards"]
+  D -->|Rehearse Again| B
+  D -->|Start New| A
+
+  style A fill:#1a1508,stroke:#D4AF37,color:#F0EDE8
+  style B fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style C fill:#0E1018,stroke:#D4AF37,color:#D4AF37
+  style D fill:#1a1508,stroke:#D4AF37,color:#F0EDE8
+      </pre>
+    </div>
+    <div class="note">The user never leaves the single-page app. Framer Motion handles all screen transitions. "Rehearse Again" resets messages with a fresh AI greeting while keeping the original context.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 2. SYSTEM ARCHITECTURE -->
+  <div class="section">
+    <div class="section-label">Diagram 02</div>
+    <div class="section-title">System Architecture</div>
+    <div class="diagram-box">
+      <pre class="mermaid">
+flowchart TB
+  subgraph Frontend["⚛️ Frontend — React + Vite + TypeScript"]
+    ES["EntryScreen\n12 Emotions"] --> CS["ConversationScreen\n🎤 STT | 🔊 TTS"]
+    CS --> MS["RelationalMirrorScreen\n3 Reflection Cards"]
+    CS --> API["api.ts\nApiResult T — isFallback flag\nTimeout: 12s simulate / 20s mirror\nClient-side fallback"]
+    MS --> API
+  end
+
+  subgraph Backend["🚀 Backend — Express + TypeScript"]
+    SIM["simulate.ts\nZod validation\nDynamic prompt\nIn-character fallback"]
+    MIR["mirror.ts\nZod validation\nJSON safe parse\nFallback reflection"]
+    PROMPT["simulateSystem.ts\nbuildSimulateSystemPrompt(context)\nDynamic persona generation"]
+    SIM --> PROMPT
+  end
+
+  subgraph AI["🤖 OpenRouter AI"]
+    CASCADE["chatCompletion()\n5-Model Cascade\n2 Retries Each\nExponential Backoff"]
+    M1["Gemma 3 12B"]
+    M2["Gemma 3n E4B"]
+    M3["Arcee Trinity"]
+    M4["Llama 4 Scout"]
+    M5["DeepSeek V3"]
+    CASCADE --> M1
+    CASCADE --> M2
+    CASCADE --> M3
+    CASCADE --> M4
+    CASCADE --> M5
+  end
+
+  API -->|"POST /api/simulate"| SIM
+  API -->|"POST /api/mirror"| MIR
+  SIM --> CASCADE
+  MIR --> CASCADE
+
+  style Frontend fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+  style Backend fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style AI fill:#1a1508,stroke:#D4AF37,color:#F0EDE8
+      </pre>
+    </div>
+    <div class="note">All communication is REST over HTTP. The Vite dev server proxies /api/* to localhost:3001. The isFallback flag flows from server → api.ts → UI components to control the practice mode banner.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 3. MODEL CASCADE -->
+  <div class="section">
+    <div class="section-label">Diagram 03</div>
+    <div class="section-title">AI Model Cascade — Fault Tolerance</div>
+    <div class="diagram-box">
+      <pre class="mermaid">
+flowchart TD
+  START["chatCompletion() called"] --> G1["Try: Gemma 3 12B\nAttempt 1"]
+  G1 -->|"✅ Success"| DONE["Return AI Response\nisFallback: false"]
+  G1 -->|"❌ 429 / 5xx"| G1R["Retry Gemma 3\n⏱️ 2s backoff"]
+  G1R -->|"❌ Fail"| G2["Try: Gemma 3n E4B"]
+  G2 -->|"✅ Success"| DONE
+  G2 -->|"❌ Fail both"| G3["Try: Arcee Trinity"]
+  G3 -->|"✅ Success"| DONE
+  G3 -->|"❌ Fail both"| G4["Try: Llama 4 Scout"]
+  G4 -->|"✅ Success"| DONE
+  G4 -->|"❌ Fail both"| G5["Try: DeepSeek V3"]
+  G5 -->|"✅ Success"| DONE
+  G5 -->|"❌ All Failed"| FALLBACK["Server Fallback\nIn-character response\nisFallback: true"]
+
+  style START fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style DONE fill:#1a3a1a,stroke:#28c840,color:#F0EDE8
+  style FALLBACK fill:#3a1a1a,stroke:#ff6b6b,color:#F0EDE8
+  style G1 fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+  style G2 fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+  style G3 fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+  style G4 fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+  style G5 fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+      </pre>
+    </div>
+    <div class="note">Each model gets 2 attempts with exponential backoff (2s → 4s). Total worst-case: ~30 seconds before hitting fallback. In practice, one model responds in 2-5 seconds. The cascade makes free-tier AI surprisingly reliable.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 4. FALLBACK SYSTEM -->
+  <div class="section">
+    <div class="section-label">Diagram 04</div>
+    <div class="section-title">3-Tier Fallback System</div>
+    <div class="diagram-box">
+      <pre class="mermaid">
+flowchart TD
+  REQ["User sends message"] --> API["api.ts — fetch with timeout"]
+  API -->|"✅ 200 OK"| CHECK{"isFallback\nin response?"}
+  CHECK -->|"false"| REAL["✅ Show real AI response\nNo banner"]
+  CHECK -->|"true"| BANNER1["⚡ Show response +\nPractice Mode banner"]
+
+  API -->|"❌ Network error\nor timeout"| CLIENT["Client-side fallback\nPrewritten demo response\nisFallback: true"]
+  CLIENT --> BANNER2["⚡ Show fallback +\nPractice Mode banner"]
+
+  subgraph Tier1["Tier 1 — Server Fallback"]
+    SRV["All 5 models failed\n→ Return in-character reply\n→ isFallback: true"]
+  end
+
+  subgraph Tier2["Tier 2 — Client Fallback"]
+    CLT["Server unreachable\n→ Return demo data\n→ isFallback: true"]
+  end
+
+  subgraph Tier3["Tier 3 — Visible Indicator"]
+    VIS["Gold banner appears\nUser knows AI is unavailable\nExperience continues"]
+  end
+
+  style REQ fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style REAL fill:#1a3a1a,stroke:#28c840,color:#F0EDE8
+  style BANNER1 fill:#3a2a0a,stroke:#D4AF37,color:#F0EDE8
+  style BANNER2 fill:#3a2a0a,stroke:#D4AF37,color:#F0EDE8
+  style Tier1 fill:#0E1018,stroke:#ff6b6b,color:#F0EDE8
+  style Tier2 fill:#0E1018,stroke:#ffd93d,color:#F0EDE8
+  style Tier3 fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+      </pre>
+    </div>
+    <div class="note">The key insight: isFallback is a boolean flag in every JSON response. The frontend uses a generic ApiResult&lt;T&gt; type to check it. This means the app NEVER crashes — it degrades gracefully with full transparency.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 5. DYNAMIC PROMPT -->
+  <div class="section">
+    <div class="section-label">Diagram 05</div>
+    <div class="section-title">Dynamic Prompt Generation</div>
+    <div class="diagram-box">
+      <pre class="mermaid">
+flowchart LR
+  CTX["User Context\n• situation\n• person\n• emotion"] --> BUILD["buildSimulateSystemPrompt()"]
+  BUILD --> PROMPT["Dynamic System Prompt"]
+  PROMPT --> IDENTITY["Identity\n'You are {person}'"]
+  PROMPT --> SITUATION["Situation\n'The context is {situation}'"]
+  PROMPT --> TONE["Emotional Tone\nCalibrated to {emotion}"]
+  PROMPT --> RULES["Hard Rules\n• Stay in character\n• 1-3 sentences\n• No advice\n• No hostility\n• Never break 4th wall"]
+
+  style CTX fill:#1a1508,stroke:#D4AF37,color:#F0EDE8
+  style BUILD fill:#161820,stroke:#D4AF37,color:#D4AF37
+  style PROMPT fill:#0E1018,stroke:#D4AF37,color:#F0EDE8
+  style IDENTITY fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style SITUATION fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style TONE fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style RULES fill:#161820,stroke:#ff6b6b,color:#F0EDE8
+      </pre>
+    </div>
+    <div class="note">This replaced a hardcoded "overwhelmed employee" prompt. Now ANY scenario works — client anger, peer conflict, manager friction, personal boundary — without code changes. The AI adapts its defensiveness level based on the user's stated emotion.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 6. MIRROR PIPELINE -->
+  <div class="section">
+    <div class="section-label">Diagram 06</div>
+    <div class="section-title">Relational Mirror — Analysis Pipeline</div>
+    <div class="diagram-box">
+      <pre class="mermaid">
+flowchart LR
+  MSGS["Full Conversation\nTranscript"] --> FORMAT["Format with\nDynamic Labels\nYou / {person}"]
+  FORMAT --> LLM["Send to AI\nMirror System Prompt\n+ Context + Transcript"]
+  LLM --> RAW["Raw AI Output"]
+  RAW --> FENCE["Strip Markdown\nCode Fences"]
+  FENCE --> PARSE{"JSON.parse\n+ Zod Validate"}
+  PARSE -->|"✅ Valid"| MAP["Map Keys\nmoment_to_notice → trigger\nthe_other_side → empathyGap\na_way_to_begin → repair"]
+  PARSE -->|"❌ Parse Error"| FALL["Fallback Reflection\nisFallback: true"]
+  MAP --> RES["🪞 Return 3 Cards\nisFallback: false"]
+
+  style MSGS fill:#161820,stroke:#D4AF37,color:#F0EDE8
+  style LLM fill:#1a1508,stroke:#D4AF37,color:#F0EDE8
+  style PARSE fill:#0E1018,stroke:#D4AF37,color:#D4AF37
+  style RES fill:#1a3a1a,stroke:#28c840,color:#F0EDE8
+  style FALL fill:#3a1a1a,stroke:#ff6b6b,color:#F0EDE8
+      </pre>
+    </div>
+    <div class="note">The pipeline handles AI unpredictability — models sometimes wrap JSON in markdown fences, return incomplete JSON, or add extra text. Every failure point has a fallback. Labels are dynamic: "You / Sarah" instead of hardcoded "Manager / Employee".</div>
+  </div>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#161820',
+      primaryTextColor: '#F0EDE8',
+      primaryBorderColor: '#D4AF37',
+      lineColor: '#D4AF37',
+      secondaryColor: '#0E1018',
+      tertiaryColor: '#1a1508',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '13px'
+    },
+    flowchart: { curve: 'basis', padding: 20 }
+  });
+</script>
+</body>
+</html>
