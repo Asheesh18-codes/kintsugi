@@ -2,7 +2,7 @@
 
 **A quiet place to practice what matters.**
 
-Kintsugi is a relational rehearsal engine built for the LOVE x AI Innovation Challenge. It helps people prepare for difficult workplace conversations — not by replacing them, but by creating a space to practice before they happen.
+Kintsugi is a relational rehearsal engine built for the LOVE x AI Innovation Challenge. It helps people prepare for difficult conversations — not by replacing them, but by creating a space to practice before they happen.
 
 The name comes from the Japanese art of repairing broken pottery with gold. The cracks are not hidden. They become the strongest part.
 
@@ -10,16 +10,74 @@ The name comes from the Japanese art of repairing broken pottery with gold. The 
 
 ## What It Does
 
-1. **Context Entry** — The user describes a difficult conversation they need to have: the situation, the person, and how they feel.
+1. **Context Entry** — Describe a difficult conversation: the situation, the person, and your emotional state (12 emotions — from Calm to Overwhelmed).
 
-2. **Roleplay Simulation** — An AI simulates the other person in the conversation. It responds with realistic emotion — defensiveness, tiredness, caution — not instant agreement or escalation. The goal is believable friction, not conflict resolution.
+2. **Dynamic Roleplay Simulation** — An AI dynamically becomes the other person based on your context. It adapts its persona, emotional tone, and defensiveness level to your specific scenario — client anger, peer conflict, manager friction, or personal boundary.
 
-3. **Relational Mirror** — After the practice conversation, the system reflects back three things:
-   - **A Moment to Notice** — Where defensiveness or pressure may have appeared in the user's language.
-   - **The Other Side** — How the other person may have experienced the interaction.
-   - **A Way to Begin** — One improved opening line grounded in vulnerability and curiosity.
+3. **Relational Mirror** — After the conversation, the AI analyzes the actual transcript and reflects back:
+   - **A Moment to Notice** — Where defensiveness or pressure appeared in your words
+   - **The Other Side** — How the other person may have experienced the interaction
+   - **A Way to Begin** — One vulnerability-based opening line to rebuild trust
 
-4. **Retry** — The user can rehearse again with new awareness, or start a completely new conversation.
+4. **Retry or Restart** — Rehearse again with new awareness (fresh AI greeting), or start a completely new conversation.
+
+---
+
+## Application Flow
+
+```
+┌──────────────────┐
+│   Entry Screen   │  Situation + Person + Emotion (12 states)
+│   "Begin..."     │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Conversation    │  Dynamic AI roleplay
+│  Screen          │  🎤 Voice input (STT)
+│                  │  🔊 Voice output (TTS)
+│  "Pause..."      │  ⚡ Practice mode indicator
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Relational      │  AI analyzes full transcript
+│  Mirror Screen   │  3 reflection cards
+│                  │  ⚡ Practice mode indicator
+│ [Rehearse Again] │──→ Back to Conversation (fresh start)
+│ [Start New]      │──→ Back to Entry Screen
+└──────────────────┘
+```
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  FRONTEND  (React + Vite + TypeScript)                          │
+│                                                                 │
+│  EntryScreen ──▶ ConversationScreen ──▶ RelationalMirrorScreen  │
+│                  🎤 STT  🔊 TTS                                │
+│                                                                 │
+│  api.ts  →  timeout (12s/20s) + fallback + isFallback flag      │
+└──────────────────────┬───────────────────────┬──────────────────┘
+                       │                       │
+                POST /api/simulate       POST /api/mirror
+                       │                       │
+┌──────────────────────┴───────────────────────┴──────────────────┐
+│  BACKEND  (Express + TypeScript)                                │
+│                                                                 │
+│  Zod Validation → Dynamic Prompt Builder → OpenRouter AI Client │
+│                                            5-model cascade      │
+│                                            2 retries per model  │
+│                                            in-character fallback│
+│                      isFallback: true/false in every response   │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │
+                         OpenRouter API
+                  (Gemma · Trinity · Llama · Mistral · DeepSeek)
+```
 
 ---
 
@@ -36,16 +94,33 @@ It scaffolds human judgment. It does not replace it.
 
 ---
 
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Dynamic Roleplay** | AI adapts its persona based on your context — works for any scenario, not just one hardcoded character |
+| **12 Emotional States** | Calm, Frustrated, Concerned, Anxious, Uncertain, Angry, Guilty, Disappointed, Scared, Sad, Overwhelmed, Hopeful |
+| **Voice Input (STT)** | Click 🎤 to speak — your words are transcribed into the chat input via Web Speech API |
+| **Voice Output (TTS)** | AI responses are read aloud via Speech Synthesis — toggle 🔊 on/off |
+| **Smart Fallbacks** | 3-tier resilience: server-side in-character fallback → client-side fallback → visible "Practice mode" indicator |
+| **Practice Mode Indicator** | Gold banner appears when AI is unavailable — "⚡ Practice mode — using guided responses" |
+| **Rehearse Again** | Resets conversation with a fresh AI greeting while keeping your context |
+| **Dynamic Transcript Labels** | Mirror analysis uses your actual context (e.g., "You" / "Sarah") instead of hardcoded labels |
+| **Model Cascade** | 5 AI models with automatic failover — Gemma 3 → Gemma 3n → Arcee Trinity → Llama → DeepSeek |
+| **No API Key Required** | Server starts in fallback mode without a key — perfect for demos and development |
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion |
 | Backend | Express, TypeScript, Zod validation |
-| AI | OpenRouter API (Gemma, Llama, Mistral — free tier with model cascade) |
-| Voice | Browser Web Speech API — Text-to-Speech + Speech-to-Text |
-| Architecture | Roleplay Engine + Relational Mirror Engine |
-| Stability | 8s timeout, demo fallback, model cascade, JSON safe parsing |
+| AI | OpenRouter API (5-model cascade with retry logic) |
+| Voice | Browser Web Speech API — Speech-to-Text + Text-to-Speech |
+| Architecture | Dynamic Roleplay Engine + Relational Mirror Engine |
+| Stability | 12s/20s timeouts, 3-tier fallback, model cascade, `isFallback` flag, JSON safe parsing |
 
 ---
 
@@ -55,12 +130,12 @@ It scaffolds human judgment. It does not replace it.
 
 - Node.js 18+
 - npm
-- An [OpenRouter](https://openrouter.ai/) API key (free tier works)
+- An [OpenRouter](https://openrouter.ai/) API key (free tier works, optional for demo mode)
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/kintsugi.git
+git clone https://github.com/Asheesh18-codes/kintsugi.git
 cd kintsugi
 ```
 
@@ -71,6 +146,8 @@ Create a `.env` file in the project root:
 ```
 OPENROUTER_API_KEY=your-openrouter-api-key-here
 ```
+
+> **Note:** The server will start without an API key and use fallback mode. A "Practice mode" banner will appear in the UI.
 
 ### 3. Install dependencies
 
@@ -110,20 +187,75 @@ The frontend proxies `/api` requests to the backend automatically via Vite's dev
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENROUTER_API_KEY` | Yes | Your OpenRouter API key. Free tier supported. |
+| `OPENROUTER_API_KEY` | No | Your OpenRouter API key. Free tier supported. Server runs in fallback mode without it. |
 | `PORT` | No | Backend port. Defaults to `3001`. |
 
 ---
 
-## Demo Mode
+## Demo Mode & Fallback Strategy
 
-If the API is unavailable — network failure, rate limiting, or no API key — the application automatically switches to demo mode:
+Kintsugi has a **3-tier fallback system** to ensure the app never crashes:
 
-- **Conversation**: Prewritten in-character replies cycle through naturally.
-- **Mirror**: A prewritten reflection is returned with all three insight cards.
-- **No error is shown to the user.** The experience continues seamlessly.
+### Tier 1 — Server-Side Fallback
+If the AI API fails (rate limit, timeout, all models exhausted), the server returns **in-character fallback responses** with `isFallback: true`:
+- Simulate: `"I... sorry, I zoned out for a second. Can you say that again?"`
+- Mirror: Generic but meaningful reflection cards
 
-This ensures Kintsugi works on stage, offline, or under load — without any configuration.
+### Tier 2 — Client-Side Fallback
+If the server itself is unreachable (network failure), the frontend returns **prewritten demo responses** with `isFallback: true`.
+
+### Tier 3 — Visible Indicator
+When `isFallback: true` is detected, a gold banner appears:
+- Conversation: `"⚡ Practice mode — AI is currently unavailable, using guided responses"`
+- Mirror: `"⚡ Practice mode — showing a guided reflection while AI is unavailable"`
+
+This ensures Kintsugi works on stage, offline, or under load — with full transparency.
+
+---
+
+## API Endpoints
+
+### `POST /api/simulate`
+
+Generates an in-character response during the practice conversation.
+
+**Request body:**
+```json
+{
+  "context": {
+    "situation": "Team member missing deadlines due to burnout",
+    "person": "Alex",
+    "emotion": "Concerned"
+  },
+  "messages": [
+    { "role": "user", "text": "Alex, I noticed some deadlines slipping recently." }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "reply": "Yeah... I know. Things have been a lot lately. I'm trying.",
+  "isFallback": false
+}
+```
+
+### `POST /api/mirror`
+
+Analyzes the full conversation and returns a structured reflection.
+
+**Request body:** Same shape as `/api/simulate`, with at least 2 messages.
+
+**Response:**
+```json
+{
+  "trigger": "The phrase 'slipping recently' may have carried implicit blame...",
+  "empathyGap": "From Alex's perspective, this might have felt like...",
+  "repair": "I've been noticing some changes and I'm concerned — not disappointed. What's going on for you?",
+  "isFallback": false
+}
+```
 
 ---
 
@@ -141,14 +273,14 @@ kintsugi/
 │   └── src/
 │       ├── index.ts              # Server entry point (port 3001)
 │       ├── lib/
-│       │   ├── openrouter.ts     # Model cascade + retry logic
+│       │   ├── openrouter.ts     # 5-model cascade + retry logic
 │       │   └── safety.ts         # Short-input guardrail
 │       ├── prompts/
-│       │   ├── simulateSystem.ts # Roleplay engine system prompt
+│       │   ├── simulateSystem.ts # Dynamic roleplay prompt builder
 │       │   └── mirrorSystem.ts   # Relational Mirror system prompt
 │       └── routes/
-│           ├── simulate.ts       # POST /api/simulate
-│           └── mirror.ts         # POST /api/mirror
+│           ├── simulate.ts       # POST /api/simulate + isFallback
+│           └── mirror.ts         # POST /api/mirror + isFallback
 │
 └── frontend/                     # React + Vite frontend
     ├── package.json
@@ -158,13 +290,13 @@ kintsugi/
         ├── main.tsx
         ├── index.css             # Global styles, animations
         ├── lib/
-        │   └── api.ts            # API client with timeout + demo fallback
+        │   └── api.ts            # API client with ApiResult<T> + isFallback detection
         ├── pages/
-        │   └── Index.tsx          # Screen state management
+        │   └── Index.tsx          # Screen state + Rehearse Again logic
         ├── components/
-        │   ├── EntryScreen.tsx           # Context entry form
-        │   ├── ConversationScreen.tsx    # Practice conversation UI + STT/TTS
-        │   ├── RelationalMirrorScreen.tsx # Mirror reflection cards
+        │   ├── EntryScreen.tsx           # Context form (12 emotions)
+        │   ├── ConversationScreen.tsx    # Chat UI + STT/TTS + fallback banner
+        │   ├── RelationalMirrorScreen.tsx # Mirror cards + fallback banner
         │   ├── GoldGlow.tsx              # Visual effect
         │   ├── GrainOverlay.tsx          # Texture overlay
         │   └── ui/                       # shadcn/ui primitives
@@ -175,47 +307,21 @@ kintsugi/
 
 ---
 
-## API Endpoints
+## Demo Scenario
 
-### `POST /api/simulate`
+Use this scenario for a live demo:
 
-Generates an in-character employee response during the practice conversation.
+**Situation:**
+> I am a team lead. One of my previously strong team members has started missing deadlines and using office time for personal projects. My client has lost trust in our delivery, and my manager has been having altercations with me about it. I need to address this directly but I also want to understand what's going on.
 
-**Request body:**
-```json
-{
-  "context": {
-    "situation": "Team member missing deadlines",
-    "person": "Alex",
-    "emotion": "frustrated"
-  },
-  "messages": [
-    { "role": "user", "text": "Alex, I noticed some deadlines slipping recently." }
-  ]
-}
-```
+**Person:** `Ravi`
 
-**Response:**
-```json
-{
-  "reply": "Yeah... I know. Things have been a lot lately."
-}
-```
+**Emotion:** `Frustrated`
 
-### `POST /api/mirror`
-
-Analyzes the full conversation and returns a structured reflection.
-
-**Request body:** Same shape as `/api/simulate`, with at least 2 messages.
-
-**Response:**
-```json
-{
-  "trigger": "There may have been a moment where...",
-  "empathyGap": "From their perspective, this might have felt...",
-  "repair": "I've been thinking about our conversation, and..."
-}
-```
+**Suggested conversation starters:**
+1. "Ravi, I wanted to talk about the project timelines. I've been hearing concerns from the client."
+2. "Hey Ravi, I need to be honest — things aren't going well with delivery and I need to understand what's happening on your end."
+3. "Ravi, I care about your work here. But I'm getting pressure from above and I need us to figure this out together."
 
 ---
 
@@ -223,20 +329,44 @@ Analyzes the full conversation and returns a structured reflection.
 
 1. **Open the app.** You see the entry screen: "A quiet place to practice what matters."
 
-2. **Enter context.** Describe the situation, the person you need to talk to, and how you're feeling. Click "Begin When You're Ready."
+2. **Enter context.** Paste the demo scenario, type "Ravi" as the person, select "Frustrated" as your emotion. Click "Begin When You're Ready."
 
-3. **Practice the conversation.** Type or speak what you would actually say to this person. Click the 🎤 mic button to use voice input — your speech is transcribed into the text field (you still press Send manually). The AI responds as a realistic employee — not hostile, not agreeable, but human. Slightly defensive. A little tired. Cautious.
+3. **Practice the conversation.** Type or speak what you would actually say. Click 🎤 to use voice input. The AI responds as Ravi — slightly defensive, maybe overwhelmed, realistic.
 
-4. **Listen to the AI.** AI responses are spoken aloud via Text-to-Speech (on by default). Click the 🔊 volume icon to toggle voice on/off. Speech is cancelled automatically when you open the Mirror.
+4. **Listen to the AI.** Responses are spoken aloud via TTS (toggle 🔊 to control). Notice how Ravi's responses create realistic friction — not hostile, but not easy either.
 
-5. **When ready**, click "Pause and Look Beneath the Surface." There is no conversation limit — practice as long as you need.
+5. **When ready**, click "Pause and Look Beneath the Surface." There is no conversation limit.
 
-6. **Read your reflection.** Three cards appear:
-   - A moment where your language may have carried more weight than you intended.
-   - How it might have felt from the other side.
-   - One opening line you could try instead.
+6. **Read your reflection.** Three cards appear with specific insights grounded in your actual words — not generic advice.
 
-7. **Rehearse again** with this new awareness, or **start fresh** with a new conversation.
+7. **Rehearse again** with new awareness, or **start fresh** with a new conversation.
+
+> **Demo tip:** If you see the "⚡ Practice mode" banner, it means the AI API is rate-limited or unavailable. The demo still works with in-character fallback responses.
+
+---
+
+## Recent Updates
+
+### v2.0 — Dynamic Engine & Smart Fallbacks
+
+- **Dynamic Roleplay Prompt** — AI persona is now generated from user context instead of hardcoded "overwhelmed employee"
+- **12 Emotional States** — Expanded from 5 mild emotions to 12 covering the full range
+- **Smart Fallback System** — 3-tier: server fallback → client fallback → visible "Practice mode" banner
+- **`isFallback` Flag** — Server includes `isFallback: true/false` in every response for transparent error handling
+- **Fixed "Rehearse Again"** — Now resets conversation with fresh AI greeting instead of showing stale messages
+- **Dynamic Transcript Labels** — Mirror analysis uses context-aware labels ("You" / person name) instead of "Manager/Employee"
+- **Server Resilience** — No longer crashes without API key; starts in fallback mode with a warning
+- **Voice I/O** — Speech-to-Text (🎤) and Text-to-Speech (🔊) via native Web Speech API
+
+---
+
+## Known Limitations
+
+- **Free-tier AI models** produce lower quality responses than paid models. Occasional generic output is expected.
+- **Rate limiting** on OpenRouter's free tier can cause model cascade to fall through to less capable models.
+- **No conversation persistence.** Conversations are not saved between sessions.
+- **Voice browser compatibility.** STT requires Chromium (Chrome, Edge). TTS works in all modern browsers.
+- **English only.** No multi-language support yet.
 
 ---
 
@@ -246,20 +376,9 @@ Analyzes the full conversation and returns a structured reflection.
 - Slack and Teams integration for in-context practice
 - Team-level analytics (aggregated, anonymized — never individual scoring)
 - Enterprise deployment with SSO and data isolation
-- Culture wall: anonymized visualization of what teams are practicing
-- Multi-language support
 - Custom scenario templates for onboarding and training
-
----
-
-## Known Limitations
-
-- **Free-tier AI models** produce lower quality responses than paid models. Occasional generic or repetitive output is expected.
-- **Rate limiting** on OpenRouter's free tier can cause delays. The model cascade and demo fallback mitigate this but don't eliminate it.
-- **Single scenario type.** Currently designed for manager-employee conversations. Other relationship types (peer, client, report) are not yet supported.
-- **No conversation persistence.** Conversations are not saved between sessions.
-- **Voice browser compatibility.** Speech-to-Text requires a Chromium-based browser (Chrome, Edge). Text-to-Speech works in all modern browsers. Both features gracefully hide when unsupported.
-- **English only.** No multi-language support yet.
+- Multi-language support
+- Conversation history and progress tracking (opt-in only)
 
 ---
 
@@ -267,12 +386,12 @@ Analyzes the full conversation and returns a structured reflection.
 
 Kintsugi is designed with deliberate ethical constraints:
 
-- **No emotional diagnosis.** The system never tells users what they feel or labels their emotional state. It reflects; it does not classify.
-- **No therapy claims.** This is a practice tool, not a clinical intervention. It does not replace professional support.
-- **No conversation storage.** Nothing the user types is persisted, logged, or transmitted beyond the current session.
-- **No empathy scoring.** There is no number, rating, or ranking attached to how someone communicates. Quantifying empathy would undermine the purpose.
-- **No automation.** The system does not generate messages for users to send. It helps them think about what to say — they still have to say it themselves.
-- **Psychological safety.** Language is intentionally non-clinical, non-judgmental, and non-directive. The system says "There may have been a moment where..." — never "You were wrong."
+- **No emotional diagnosis.** The system never tells users what they feel or labels their emotional state.
+- **No therapy claims.** This is a practice tool, not a clinical intervention.
+- **No conversation storage.** Nothing is persisted, logged, or transmitted beyond the current session.
+- **No empathy scoring.** There is no number or ranking attached to how someone communicates.
+- **No automation.** The system does not generate messages for users to send.
+- **Psychological safety.** Language is intentionally non-clinical and non-judgmental.
 
 ---
 
@@ -280,7 +399,7 @@ Kintsugi is designed with deliberate ethical constraints:
 
 Built for the **LOVE x AI Innovation Challenge**.
 
-The name Kintsugi comes from the Japanese art of repairing broken pottery with gold lacquer — treating breakage not as something to hide, but as part of the object's history. The philosophy: what is broken can become more beautiful for having been broken.
+The name Kintsugi comes from the Japanese art of repairing broken pottery with gold lacquer — treating breakage not as something to hide, but as part of the object's history.
 
 ---
 
