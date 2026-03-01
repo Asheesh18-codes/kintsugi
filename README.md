@@ -2,7 +2,7 @@
 
 **A quiet place to practice what matters.**
 
-Kintsugi is a relational rehearsal engine built for the LOVE x AI Innovation Challenge. It helps people prepare for difficult conversations — not by replacing them, but by creating a space to practice before they happen.
+Kintsugi is a relational rehearsal engine built for the softway LOVE x AI Innovation Challenge. It helps people prepare for difficult conversations — not by replacing them, but by creating a space to practice before they happen.
 
 The name comes from the Japanese art of repairing broken pottery with gold. The cracks are not hidden. They become the strongest part.
 
