@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kintsugi AI — Practice Courage. Repair Trust.</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap');
+
+        :root {
+            --gold: #D4AF37;
+            --gold-light: #F0D060;
+            --gold-pale: #E8C84A20;
+            --gold-dark: #A08820;
+            --bg: #080909;
+            --bg2: #0C0D0F;
+            --surface: #111214;
+            --surface2: #181A1E;
+            --text: #EDE9E3;
+            --text-muted: #8A8480;
+            --text-dim: #3A3835;
+            --font-display: 'Cormorant Garamond', 'Palatino Linotype', Georgia, serif;
+            --font-mono: 'DM Mono', 'Courier New', monospace;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        /* CUSTOM CURSOR */
+        #cursor {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--gold);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.15s ease;
+            mix-blend-mode: difference;
+        }
+
+        #cursor-ring {
+            position: fixed;
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--gold);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            opacity: 0.5;
+        }
+
+        /* GRAIN OVERLAY */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.6;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 500;
+            padding: 28px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(8, 9, 9, 0.9) 0%, transparent 100%);
+            backdrop-filter: blur(2px);
+        }
+
+        .nav-logo {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            color: var(--text);
+        }
+
+        .nav-logo span {
+            color: var(--gold);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold);
+        }
+
+        /* SCROLL INDICATOR */
+        #scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 1px;
+            background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
+            z-index: 600;
+            transition: width 0.1s ease;
+        }
+
+        /* SECTIONS */
+        section {
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* HERO */
+        #hero {
+            flex-direction: column;
+            text-align: center;
+            padding: 120px 60px;
+        }
+
+        .hero-canvas {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 32px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .eyebrow.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(64px, 10vw, 140px);
+            font-weight: 300;
+            line-height: 0.92;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1s ease 0.2s, transform 1s ease 0.2s;
+        }
+
+        .hero-title.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-title .gold {
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .hero-tagline {
+            font-family: var(--font-display);
+            font-size: clamp(18px, 2.5vw, 30px);
+            font-style: italic;
+            color: var(--text-muted);
+            margin-top: 32px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease 0.6s, transform 0.8s ease 0.6s;
+        }
+
+        .hero-tagline.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-cta {
+            display: inline-block;
+            margin-top: 56px;
+            padding: 16px 48px;
+            border: 1px solid var(--gold);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.8s ease 0.9s, transform 0.8s ease 0.9s, color 0.3s ease, background 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .hero-cta.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-cta::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gold);
+            transform: translateX(-101%);
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .hero-cta:hover {
+            color: var(--bg);
+        }
+
+        .hero-cta:hover::before {
+            transform: translateX(0);
+        }
+
+        .hero-cta span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .scroll-line {
+            width: 1px;
+            height: 50px;
+            background: linear-gradient(to bottom, var(--gold), transparent);
+            animation: scrollPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes scrollPulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scaleY(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scaleY(1.2);
+            }
+        }
+
+        /* GOLD DIVIDER */
+        .gold-divider {
+            width: 80px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            margin: 40px auto;
+        }
+
+        /* CONTENT SECTIONS */
+        .section-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 120px 60px;
+            width: 100%;
+        }
+
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 24px;
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .section-label.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(36px, 5.5vw, 76px);
+            font-weight: 300;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.9s ease 0.15s, transform 0.9s ease 0.15s;
+        }
+
+        .section-title.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-title .gold {
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .section-body {
+            font-size: clamp(15px, 1.6vw, 18px);
+            color: var(--text-muted);
+            line-height: 1.8;
+            max-width: 640px;
+            margin-top: 28px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s;
+        }
+
+        .section-body.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* STATS SECTION */
+        #stats {
+            background: var(--bg2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            margin-top: 80px;
+        }
+
+        .stat-block {
+            background: var(--surface);
+            padding: 60px 48px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .stat-block::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            transform: scaleX(0);
+            transition: transform 0.6s ease;
+        }
+
+        .stat-block:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-block.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(56px, 7vw, 96px);
+            font-weight: 300;
+            color: var(--gold);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+
+        /* KINTSUGI VISUAL SECTION */
+        #philosophy {
+            background: var(--bg);
+        }
+
+        .philosophy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+            margin-top: 80px;
+        }
+
+        .crack-visual {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        .crack-visual svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HOW IT WORKS */
+        #how-it-works {
+            background: var(--bg2);
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-top: 80px;
+            position: relative;
+        }
+
+        .flow-steps::before {
+            content: '';
+            position: absolute;
+            left: 28px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(to bottom, var(--gold), transparent);
+        }
+
+        .flow-step {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 40px;
+            padding: 48px 0;
+            border-bottom: 1px solid var(--surface2);
+            position: relative;
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .flow-step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .flow-step:last-child {
+            border-bottom: none;
+        }
+
+        .step-num {
+            width: 56px;
+            height: 56px;
+            border: 1px solid var(--text-dim);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--gold);
+            background: var(--bg);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+            transition: border-color 0.3s ease, background 0.3s ease;
+        }
+
+        .flow-step:hover .step-num {
+            border-color: var(--gold);
+            background: var(--gold);
+            color: var(--bg);
+        }
+
+        .step-content {
+            padding-top: 8px;
+        }
+
+        .step-title {
+            font-family: var(--font-display);
+            font-size: clamp(22px, 2.5vw, 32px);
+            font-weight: 300;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .step-title .gold {
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .step-desc {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.75;
+            max-width: 560px;
+        }
+
+        /* VALUES */
+        #values {
+            background: var(--bg);
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 80px;
+        }
+
+        .value-card {
+            padding: 48px;
+            border: 1px solid var(--surface2);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.8s ease, transform 0.8s ease, border-color 0.3s ease;
+        }
+
+        .value-card:hover {
+            border-color: var(--gold-dark);
+        }
+
+        .value-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .value-num {
+            font-family: var(--font-mono);
+            font-size: 56px;
+            font-weight: 300;
+            color: var(--surface2);
+            line-height: 1;
+            margin-bottom: 24px;
+            transition: color 0.3s ease;
+        }
+
+        .value-card:hover .value-num {
+            color: var(--text-dim);
+        }
+
+        .value-name {
+            font-family: var(--font-display);
+            font-size: clamp(22px, 2vw, 28px);
+            font-weight: 300;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .value-desc {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.75;
+        }
+
+        /* CLOSING */
+        #closing {
+            background: var(--bg);
+            flex-direction: column;
+            text-align: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .closing-crack-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.6;
+        }
+
+        .closing-content {
+            position: relative;
+            z-index: 10;
+            padding: 60px;
+        }
+
+        .closing-quote {
+            font-family: var(--font-display);
+            font-size: clamp(36px, 5.5vw, 80px);
+            font-weight: 300;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            max-width: 900px;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.2s ease, transform 1.2s ease;
+        }
+
+        .closing-quote.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .closing-quote .gold {
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .closing-sub {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            color: var(--text-dim);
+            margin-top: 60px;
+            text-transform: uppercase;
+            opacity: 0;
+            transition: opacity 1s ease 0.4s;
+        }
+
+        .closing-sub.visible {
+            opacity: 1;
+        }
+
+        /* SECTION ACCENT */
+        .section-accent {
+            position: absolute;
+            left: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1px;
+            height: 120px;
+            background: linear-gradient(to bottom, transparent, var(--gold), transparent);
+            opacity: 0.3;
+        }
+
+        /* PHILOSOPHY CARDS */
+        .philosophy-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .phil-card {
+            padding: 32px 36px;
+            border: 1px solid var(--surface2);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateX(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease, border-color 0.3s ease;
+        }
+
+        .phil-card.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .phil-card:hover {
+            border-color: var(--gold-dark);
+        }
+
+        .phil-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--gold);
+            transform: scaleY(0);
+            transition: transform 0.4s ease;
+            transform-origin: bottom;
+        }
+
+        .phil-card:hover::before {
+            transform: scaleY(1);
+        }
+
+        .phil-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 300;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .phil-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        /* ANIMATED CRACK PATHS */
+        .crack-path {
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000;
+            transition: stroke-dashoffset 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .crack-path.animated {
+            stroke-dashoffset: 0;
+        }
+
+        .crack-glow {
+            animation: crackGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes crackGlow {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 0 4px var(--gold-dark));
+            }
+
+            50% {
+                filter: drop-shadow(0 0 12px var(--gold));
+            }
+        }
+
+        /* Animated underline */
+        .underline-gold {
+            position: relative;
+            display: inline;
+        }
+
+        .underline-gold::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--gold);
+            transition: width 1s ease 0.5s;
+        }
+
+        .section-title.visible .underline-gold::after {
+            width: 100%;
+        }
+
+        /* FOOTER */
+        footer {
+            background: var(--bg2);
+            padding: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--surface2);
+        }
+
+        .footer-logo {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 300;
+            color: var(--text-muted);
+        }
+
+        .footer-logo span {
+            color: var(--gold);
+        }
+
+        .footer-copy {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--text-dim);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            nav {
+                padding: 20px 24px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .section-inner {
+                padding: 80px 24px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .philosophy-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .values-grid {
+                grid-template-columns: 1fr;
+            }
+
+            footer {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .section-accent {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+    <div id="cursor-ring"></div>
+
+    <!-- Scroll Progress -->
+    <div id="scroll-progress"></div>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-logo">Kintsugi <span>AI</span></div>
+        <ul class="nav-links">
+            <li><a href="#philosophy">Philosophy</a></li>
+            <li><a href="#how-it-works">Process</a></li>
+            <li><a href="#values">Principles</a></li>
+            <li><a href="#closing">Begin</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO -->
+    <section id="hero">
+        <canvas class="hero-canvas" id="heroCanvas"></canvas>
+        <div class="hero-content">
+            <div class="eyebrow" id="heroEyebrow">Practice Courage. Repair Trust.</div>
+            <h1 class="hero-title" id="heroTitle">
+                Kintsugi<br><span class="gold">AI</span>
+            </h1>
+            <p class="hero-tagline" id="heroTagline">
+                Where broken conversations become golden.
+            </p>
+            <a href="#philosophy" class="hero-cta" id="heroCta"><span>Explore the Practice ↓</span></a>
+        </div>
+        <div class="scroll-hint">
+            <div class="scroll-line"></div>
+            <span>Scroll</span>
+        </div>
+    </section>
+
+    <!-- PROBLEM / STATS -->
+    <section id="stats">
+        <div class="section-inner">
+            <div class="section-label reveal-el">The Invisible Crisis</div>
+            <h2 class="section-title reveal-el">Leadership fails at the <span class="gold underline-gold">human
+                    layer</span></h2>
+            <p class="section-body reveal-el">Most organizations invest heavily in strategy, product, and process. The
+                conversations that hold everything together—the hard, honest, vulnerable ones—are systematically
+                avoided.</p>
+
+            <div class="stats-grid">
+                <div class="stat-block reveal-el" style="transition-delay: 0.1s">
+                    <div class="stat-number" data-target="40" data-suffix="%">0</div>
+                    <div class="stat-label">Of employees say they avoid difficult conversations with managers — Gallup,
+                        2024</div>
+                </div>
+                <div class="stat-block reveal-el" style="transition-delay: 0.25s">
+                    <div class="stat-number" data-target="28" data-suffix="%">0</div>
+                    <div class="stat-label">Of managers report "managing up" as their biggest unspoken challenge —
+                        McKinsey, 2023</div>
+                </div>
+                <div class="stat-block reveal-el" style="transition-delay: 0.4s">
+                    <div class="stat-number" style="font-size: clamp(40px,5vw,72px)" data-target-text="150M">$0</div>
+                    <div class="stat-label">Lost annually to communication-driven disengagement in Fortune 500s —
+                        Grammarly/Harris, 2023</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- PROBLEM / STATS -->
+    <section id="stats">
+        <div class="section-inner">
+            <div class="section-label reveal-el">The Invisible Crisis</div>
+            <h2 class="section-title reveal-el">Actual</h2>
+            <p class="section-body reveal-el">Most organizations invest heavily in strategy, product, and process. The
+                conversations that hold everything together—the hard, honest, vulnerable ones—are systematically
+                avoided.</p>
+
+            <div class="stats-grid">
+                <div class="stat-block reveal-el" style="transition-delay: 0.1s">
+                    <div class="stat-number" data-target="70" data-suffix="%">0</div>
+                    <div class="stat-label">Of employees say they avoid difficult conversations with managers — Gallup,
+                        2024</div>
+                </div>
+                <div class="stat-block reveal-el" style="transition-delay: 0.25s">
+                    <div class="stat-number" data-target="62" data-suffix="%">0</div>
+                    <div class="stat-label">Of managers report "managing up" as their biggest unspoken challenge —
+                        McKinsey, 2023</div>
+                </div>
+                <div class="stat-block reveal-el" style="transition-delay: 0.4s">
+                    <div class="stat-number" style="font-size: clamp(40px,5vw,72px)" data-target-text="$150M">$0</div>
+                    <div class="stat-label">Lost annually to communication-driven disengagement in Fortune 500s —
+                        Grammarly/Harris, 2023</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- PHILOSOPHY -->
+    <section id="philosophy">
+        <div class="section-accent"></div>
+        <div class="section-inner">
+            <div class="section-label reveal-el">Our Philosophy</div>
+            <h2 class="section-title reveal-el">Cracks are not <span class="gold">failures</span>.<br>They are where
+                gold enters.</h2>
+
+            <div class="philosophy-grid">
+                <div class="crack-visual">
+                    <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="250" cy="250" r="220" fill="#0E1018" stroke="#1E2030" stroke-width="1" />
+                        <circle cx="250" cy="250" r="200" fill="none" stroke="#12141C" stroke-width="0.5"
+                            opacity="0.5" />
+                        <circle cx="250" cy="250" r="170" fill="none" stroke="#12141C" stroke-width="0.3"
+                            opacity="0.3" />
+                        <path class="crack-path crack-glow"
+                            d="M250 80 Q230 150 220 200 Q210 240 240 270 Q260 290 250 340 Q245 380 260 430"
+                            stroke="#D4AF37" stroke-width="2.5" fill="none" />
+                        <path class="crack-path" d="M220 200 Q180 190 140 180 Q100 168 70 140" stroke="#D4AF37"
+                            stroke-width="1.5" fill="none" style="transition-delay: 0.5s" />
+                        <path class="crack-path" d="M240 270 Q290 265 340 270 Q390 275 420 310" stroke="#D4AF37"
+                            stroke-width="1.5" fill="none" style="transition-delay: 1s" />
+                        <path class="crack-path" d="M220 200 Q240 220 260 200 Q280 180 310 170 Q350 158 380 130"
+                            stroke="#B8942A" stroke-width="1" fill="none" style="transition-delay: 0.7s" />
+                        <path class="crack-path" d="M250 340 Q220 350 190 370 Q160 390 130 400" stroke="#B8942A"
+                            stroke-width="1" fill="none" style="transition-delay: 1.2s" />
+                        <path class="crack-path" d="M240 270 Q220 290 200 300 Q170 318 150 350" stroke="#C4A030"
+                            stroke-width="0.8" fill="none" style="transition-delay: 1.5s" />
+                        <path class="crack-path" d="M260 290 Q280 310 300 320 Q330 335 360 360" stroke="#C4A030"
+                            stroke-width="0.8" fill="none" style="transition-delay: 1.8s" />
+                        <path class="crack-path"
+                            d="M250 80 Q230 150 220 200 Q210 240 240 270 Q260 290 250 340 Q245 380 260 430"
+                            stroke="#F0D060" stroke-width="0.8" fill="none" opacity="0.5" />
+                        <circle cx="220" cy="200" r="3" fill="#D4AF37" opacity="0" class="crack-dot"
+                            style="transition: opacity 2s ease 2s" />
+                        <circle cx="240" cy="270" r="3" fill="#D4AF37" opacity="0" class="crack-dot"
+                            style="transition: opacity 2s ease 2.2s" />
+                        <circle cx="250" cy="340" r="3" fill="#D4AF37" opacity="0" class="crack-dot"
+                            style="transition: opacity 2s ease 2.4s" />
+                    </svg>
+                </div>
+
+                <div class="philosophy-cards">
+                    <div class="phil-card reveal-el" style="transition-delay: 0.1s">
+                        <div class="phil-title">Not Automation. Augmentation.</div>
+                        <div class="phil-desc">Kintsugi AI doesn't replace the conversation. It prepares the human to
+                            have it — with clarity, courage, and empathy baked in.</div>
+                    </div>
+                    <div class="phil-card reveal-el" style="transition-delay: 0.25s">
+                        <div class="phil-title">Trust as Infrastructure</div>
+                        <div class="phil-desc">Every team runs on trust. When it cracks, most leaders patch over it. We
+                            teach them to work with the break — making relationships stronger at every fracture point.
+                        </div>
+                    </div>
+                    <div class="phil-card reveal-el" style="transition-delay: 0.4s">
+                        <div class="phil-title">Courage is a Practice</div>
+                        <div class="phil-desc">Difficult conversations aren't natural for most people. Like any skill,
+                            courage can be practiced, refined, and made habitual with the right coach.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="gold-divider reveal-el"></div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works">
+        <div class="section-inner">
+            <div class="section-label reveal-el">The Process</div>
+            <h2 class="section-title reveal-el">How <span class="gold">Kintsugi AI</span> works</h2>
+
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="step-num">01</div>
+                    <div class="step-content">
+                        <div class="step-title">Name the <span class="gold">Fracture</span></div>
+                        <div class="step-desc">Leaders describe the conversation they're avoiding — the feedback they
+                            haven't given, the boundary they haven't set, the conflict left unresolved. The act of
+                            naming it is the first repair.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">02</div>
+                    <div class="step-content">
+                        <div class="step-title">Decode the <span class="gold">Relational Map</span></div>
+                        <div class="step-desc">Kintsugi AI surfaces the emotional subtext, power dynamics, and likely
+                            reactions beneath the surface. It identifies triggers, empathy gaps, and the real need
+                            underneath the presenting issue.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">03</div>
+                    <div class="step-content">
+                        <div class="step-title">Practice the <span class="gold">Hard Part</span></div>
+                        <div class="step-desc">Role-play the actual conversation with an AI that responds realistically
+                            — defending, deflecting, getting emotional. Leaders practice until the words feel like
+                            theirs, not a script.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">04</div>
+                    <div class="step-content">
+                        <div class="step-title">Enter with <span class="gold">Clarity</span></div>
+                        <div class="step-desc">A personalized conversation guide: your opening, the emotional territory
+                            to navigate, the moment to stay quiet. Not a script — a compass. The courage is yours. We
+                            just help you find it.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VALUES -->
+    <section id="values">
+        <div class="section-inner">
+            <div class="section-label reveal-el">Our Principles</div>
+            <h2 class="section-title reveal-el">Aligned with <span class="gold">Human-First AI</span></h2>
+
+            <div class="values-grid">
+                <div class="value-card reveal-el" style="transition-delay: 0.1s">
+                    <div class="value-num">01</div>
+                    <div class="value-name">Embrace Discomfort</div>
+                    <div class="value-desc">Courage is a muscle. We help leaders practice the conversations they avoid —
+                        not escape them.</div>
+                </div>
+                <div class="value-card reveal-el" style="transition-delay: 0.25s">
+                    <div class="value-num">02</div>
+                    <div class="value-name">Prioritize Relationships</div>
+                    <div class="value-desc">Every interaction is an opportunity to build or break trust. We choose to
+                        build.</div>
+                </div>
+                <div class="value-card reveal-el" style="transition-delay: 0.4s">
+                    <div class="value-num">03</div>
+                    <div class="value-name">Empathetic Curiosity</div>
+                    <div class="value-desc">We teach leaders to ask before they assume — to understand before they
+                        judge.</div>
+                </div>
+                <div class="value-card reveal-el" style="transition-delay: 0.55s">
+                    <div class="value-num">04</div>
+                    <div class="value-name">Be Effective</div>
+                    <div class="value-desc">Compassion without outcome is sentiment. We train for real results: trust,
+                        retention, clarity.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CLOSING -->
+    <section id="closing">
+        <svg class="closing-crack-svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice"
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 450 Q200 420 400 450 Q600 480 720 440 Q840 400 1000 430 Q1200 460 1440 420" stroke="#D4AF37"
+                stroke-width="1.5" fill="none" opacity="0.15" />
+            <path d="M720 440 L700 560 L725 720 L710 900" stroke="#D4AF37" stroke-width="1" fill="none"
+                opacity="0.12" />
+            <path d="M720 440 L750 310 L730 160 L755 0" stroke="#D4AF37" stroke-width="1" fill="none" opacity="0.12" />
+            <path d="M700 560 L620 590 L560 572 L480 610" stroke="#B8942A" stroke-width="0.7" fill="none"
+                opacity="0.1" />
+            <path d="M750 310 L830 280 L890 305 L950 270" stroke="#B8942A" stroke-width="0.7" fill="none"
+                opacity="0.1" />
+            <radialGradient id="closingGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.08" />
+                <stop offset="100%" stop-color="#D4AF37" stop-opacity="0" />
+            </radialGradient>
+            <rect width="1440" height="900" fill="url(#closingGlow)" />
+        </svg>
+
+        <div class="closing-content">
+            <div class="closing-quote reveal-el">
+                "Kintsugi doesn't automate courage.<br><span class="gold">It trains it.</span>"
+            </div>
+            <div class="gold-divider"></div>
+            <div class="closing-sub reveal-el">Practice Courage · Repair Trust · Kintsugi AI</div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-logo">Kintsugi <span>AI</span></div>
+        <div class="footer-copy">© 2025 Kintsugi AI. Built for the conversations that matter.</div>
+    </footer>
+
+    <script>
+        // CUSTOM CURSOR
+        const cursor = document.getElementById('cursor');
+        const cursorRing = document.getElementById('cursor-ring');
+        let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX - 5 + 'px';
+            cursor.style.top = mouseY - 5 + 'px';
+        });
+
+        function animateCursor() {
+            ringX += (mouseX - ringX - 18) * 0.12;
+            ringY += (mouseY - ringY - 18) * 0.12;
+            cursorRing.style.left = ringX + 'px';
+            cursorRing.style.top = ringY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        document.querySelectorAll('a, button, .value-card, .phil-card, .flow-step').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursor.style.transform = 'scale(3)';
+                cursorRing.style.opacity = '1';
+                cursorRing.style.transform = 'scale(1.4)';
+            });
+            el.addEventListener('mouseleave', () => {
+                cursor.style.transform = 'scale(1)';
+                cursorRing.style.opacity = '0.5';
+                cursorRing.style.transform = 'scale(1)';
+            });
+        });
+
+        // SCROLL PROGRESS
+        const progressBar = document.getElementById('scroll-progress');
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            progressBar.style.width = (scrolled / max * 100) + '%';
+        });
+
+        // HERO CANVAS
+        const canvas = document.getElementById('heroCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const cracks = [
+            { points: [[0.5, 0.1], [0.48, 0.35], [0.45, 0.5], [0.5, 0.65], [0.49, 0.85], [0.51, 1.0]], width: 1.5 },
+            { points: [[0.45, 0.5], [0.3, 0.45], [0.15, 0.4]], width: 0.8 },
+            { points: [[0.5, 0.65], [0.65, 0.62], [0.8, 0.68]], width: 0.8 },
+            { points: [[0.48, 0.35], [0.6, 0.3], [0.75, 0.25]], width: 0.6 },
+            { points: [[0.45, 0.5], [0.35, 0.6], [0.25, 0.7]], width: 0.5 },
+        ];
+
+        let progress = 0;
+        const particles = [];
+
+        for (let i = 0; i < 40; i++) {
+            const crack = cracks[Math.floor(Math.random() * cracks.length)];
+            particles.push({ crack, t: Math.random(), speed: 0.0002 + Math.random() * 0.0003, size: 0.5 + Math.random() * 1.5, opacity: Math.random() });
+        }
+
+        function lerpPoints(points, t) {
+            const totalSegments = points.length - 1;
+            const segment = Math.min(Math.floor(t * totalSegments), totalSegments - 1);
+            const localT = (t * totalSegments) - segment;
+            const p1 = points[segment];
+            const p2 = points[segment + 1];
+            return [p1[0] + (p2[0] - p1[0]) * localT, p1[1] + (p2[1] - p1[1]) * localT];
+        }
+
+        function drawHero() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            progress = Math.min(progress + 0.003, 1);
+
+            cracks.forEach((crack, idx) => {
+                const drawProgress = Math.max(0, (progress - idx * 0.12) / (1 - idx * 0.12));
+                if (drawProgress <= 0) return;
+
+                ctx.beginPath();
+                ctx.moveTo(crack.points[0][0] * canvas.width, crack.points[0][1] * canvas.height);
+                for (let i = 1; i < crack.points.length; i++) {
+                    const t = i / (crack.points.length - 1);
+                    if (t > drawProgress) break;
+                    ctx.lineTo(crack.points[i][0] * canvas.width, crack.points[i][1] * canvas.height);
+                }
+                const endT = drawProgress;
+                if (endT < 1) {
+                    const p = lerpPoints(crack.points, endT);
+                    ctx.lineTo(p[0] * canvas.width, p[1] * canvas.height);
+                }
+                ctx.strokeStyle = `rgba(212, 175, 55, 0.08)`;
+                ctx.lineWidth = crack.width * 8;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(crack.points[0][0] * canvas.width, crack.points[0][1] * canvas.height);
+                for (let i = 1; i < crack.points.length; i++) {
+                    const t = i / (crack.points.length - 1);
+                    if (t > drawProgress) break;
+                    ctx.lineTo(crack.points[i][0] * canvas.width, crack.points[i][1] * canvas.height);
+                }
+                if (endT < 1) {
+                    const p = lerpPoints(crack.points, endT);
+                    ctx.lineTo(p[0] * canvas.width, p[1] * canvas.height);
+                }
+                ctx.strokeStyle = `rgba(212, 175, 55, ${0.15 * crack.width})`;
+                ctx.lineWidth = crack.width;
+                ctx.stroke();
+            });
+
+            particles.forEach(p => {
+                p.t = (p.t + p.speed) % 1;
+                const pos = lerpPoints(p.crack.points, p.t);
+                p.opacity = Math.sin(p.t * Math.PI) * 0.6;
+                ctx.beginPath();
+                ctx.arc(pos[0] * canvas.width, pos[1] * canvas.height, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(240, 208, 96, ${p.opacity * progress})`;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(drawHero);
+        }
+        drawHero();
+
+        // HERO ANIMATIONS
+        setTimeout(() => {
+            document.getElementById('heroEyebrow').classList.add('visible');
+            document.getElementById('heroTitle').classList.add('visible');
+            document.getElementById('heroTagline').classList.add('visible');
+            document.getElementById('heroCta').classList.add('visible');
+        }, 200);
+
+        // SCROLL REVEAL
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    entry.target.querySelectorAll('.crack-path').forEach((path, i) => {
+                        setTimeout(() => path.classList.add('animated'), i * 300);
+                    });
+                    entry.target.querySelectorAll('.crack-dot').forEach(dot => { dot.style.opacity = '1'; });
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.reveal-el, .section-label, .section-title, .section-body, .stat-block, .phil-card, .flow-step, .value-card, .closing-quote, .closing-sub, .crack-visual').forEach(el => {
+            revealObserver.observe(el);
+        });
+
+        // STAT COUNTER
+        function animateCounter(el) {
+            const isText = el.dataset.targetText;
+            if (isText) {
+                const frames = ['$0', '$5B', '$12B', '$20B', '$25B', '$28B', '$30B'];
+                let i = 0;
+                const interval = setInterval(() => { el.textContent = frames[i]; i++; if (i >= frames.length) clearInterval(interval); }, 120);
+                return;
+            }
+            const target = parseInt(el.dataset.target);
+            const prefix = el.dataset.prefix || '';
+            const suffix = el.dataset.suffix || '';
+            let current = 0;
+            const step = target / 40;
+            const interval = setInterval(() => { current = Math.min(current + step, target); el.textContent = prefix + Math.floor(current) + suffix; if (current >= target) clearInterval(interval); }, 40);
+        }
+
+        const statObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    const numEl = entry.target.querySelector('[data-target], [data-target-text]');
+                    if (numEl && !numEl.dataset.counted) { numEl.dataset.counted = 'true'; animateCounter(numEl); }
+                }
+            });
+        }, { threshold: 0.3 });
+        document.querySelectorAll('.stat-block').forEach(el => statObserver.observe(el));
+
+        // PARALLAX
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const heroContent = document.querySelector('.hero-content');
+            if (heroContent && scrolled < window.innerHeight) {
+                heroContent.style.transform = `translateY(${scrolled * 0.3}px)`;
+                heroContent.style.opacity = 1 - scrolled / (window.innerHeight * 0.8);
+            }
+        });
+
+        // Smooth nav
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+
+</html>

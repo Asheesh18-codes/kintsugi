@@ -7,6 +7,16 @@ import { fetchSimulateResponse } from "@/lib/api";
 import type { Message, Context } from "@/lib/api";
 import kintsugiShield from "@/assets/kintsugi-shield.png";
 
+// ─── Auto-demo config ────────────────────────────────────────────────────────
+const DEMO_MESSAGES = [
+  "Ravi, I wanted to talk about the project timelines. The client has raised concerns and I need to understand what's happening.",
+  "I hear you, and I'm not trying to corner you. But the deadlines keep slipping and I'm getting pressure from above. I need us to figure this out together.",
+  "I care about your work here, Ravi. I'm asking because I want to help, not because I want to blame you.",
+];
+const TYPING_SPEED = 40;
+const PAUSE_AFTER_AI = 2500;
+const PAUSE_BEFORE_MIRROR = 2500;
+
 type SpeechRecognitionInstance = InstanceType<
   typeof globalThis.SpeechRecognition
 >;
@@ -16,6 +26,7 @@ interface ConversationScreenProps {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   onRevealMirror: () => void;
+  isAutoDemo?: boolean;
 }
 
 const ConversationScreen = ({
@@ -23,6 +34,7 @@ const ConversationScreen = ({
   messages,
   setMessages,
   onRevealMirror,
+  isAutoDemo = false,
 }: ConversationScreenProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -118,6 +130,72 @@ const ConversationScreen = ({
       behavior: "smooth",
     });
   }, [messages, isLoading]);
+
+  // ─── Auto-demo: type and send messages automatically ─────────────────────
+  const autoDemoIndexRef = useRef(0);
+  const autoDemoTypingRef = useRef(false);
+  const autoDemoSentRef = useRef(false);
+
+  useEffect(() => {
+    if (!isAutoDemo || isLoading || autoDemoTypingRef.current) return;
+
+    const idx = autoDemoIndexRef.current;
+
+    // All messages sent -> go to mirror
+    if (idx >= DEMO_MESSAGES.length) {
+      if (!autoDemoSentRef.current) {
+        autoDemoSentRef.current = true;
+        const timer = setTimeout(() => {
+          stopListening();
+          globalThis.speechSynthesis?.cancel();
+          onRevealMirror();
+        }, PAUSE_BEFORE_MIRROR);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+
+    // Wait for the AI to have replied (messages: AI greeting + user/AI pairs)
+    const expectedLen = 1 + idx * 2; // AI greeting, then user+AI pairs
+    if (messages.length < expectedLen) return;
+
+    // Start typing the next message
+    autoDemoTypingRef.current = true;
+    const delay = idx === 0 ? 1500 : PAUSE_AFTER_AI;
+
+    const timer = setTimeout(() => {
+      const text = DEMO_MESSAGES[idx];
+      let c = 0;
+
+      const typeInterval = setInterval(() => {
+        if (c <= text.length) {
+          setInput(text.slice(0, c));
+          c++;
+        } else {
+          clearInterval(typeInterval);
+
+          // Send after a brief pause
+          setTimeout(() => {
+            // Programmatically send
+            const userMsg: Message = { role: "user", text };
+            setMessages((prev) => [...prev, userMsg]);
+            setInput("");
+            setIsLoading(true);
+            autoDemoIndexRef.current = idx + 1;
+            autoDemoTypingRef.current = false;
+
+            fetchSimulateResponse(context, [...messages, userMsg]).then((result) => {
+              setMessages((prev) => [...prev, { role: "ai", text: result.data }]);
+              if (result.isFallback) setUsingFallback(true);
+              setIsLoading(false);
+            });
+          }, 800);
+        }
+      }, TYPING_SPEED);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [isAutoDemo, messages.length, isLoading, context, onRevealMirror, stopListening, setMessages]);
 
   const handleSend = async () => {
     stopListening();

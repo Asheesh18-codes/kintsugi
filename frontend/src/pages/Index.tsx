@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import EntryScreen from "@/components/EntryScreen";
 import ConversationScreen from "@/components/ConversationScreen";
 import RelationalMirrorScreen from "@/components/RelationalMirrorScreen";
 import GrainOverlay from "@/components/GrainOverlay";
 import type { Message, Context } from "@/lib/api";
+import { useAutoDemoEntry } from "@/lib/useAutoDemo";
 
 type Screen = "entry" | "conversation" | "mirror";
+
+const isAutoDemo = window.location.search.includes("autodemo");
 
 const Index = () => {
   const [screen, setScreen] = useState<Screen>("entry");
@@ -17,7 +20,7 @@ const Index = () => {
   });
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const handleBegin = (data: Context) => {
+  const handleBegin = useCallback((data: Context) => {
     setContext(data);
     setMessages([
       {
@@ -26,7 +29,10 @@ const Index = () => {
       },
     ]);
     setScreen("conversation");
-  };
+  }, []);
+
+  // Auto-demo: auto-fill entry screen
+  useAutoDemoEntry(isAutoDemo && screen === "entry", handleBegin);
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,6 +48,7 @@ const Index = () => {
             messages={messages}
             setMessages={setMessages}
             onRevealMirror={() => setScreen("mirror")}
+            isAutoDemo={isAutoDemo}
           />
         )}
         {screen === "mirror" && (
